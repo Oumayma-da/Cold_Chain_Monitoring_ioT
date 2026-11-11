@@ -1,0 +1,395 @@
+{% extends 'DHT/base.html' %}
+
+{% block titre %}{{ mesure.nom }} — Graphique{% endblock %}
+
+{% block style %}
+    .retour { display: inline-flex; gap: 6px; color: var(--texte-2); font-weight: 500; margin-bottom: 14px; }
+    .retour:hover { color: var(--texte); }
+
+    .titre-ligne { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+    .titre-ligne .titre-page { margin: 0; }
+
+    .bloc {
+        background: var(--surface);
+        border-radius: var(--rayon);
+        box-shadow: var(--ombre);
+        padding: 22px 24px;
+        margin-bottom: 20px;
+    }
+
+    /* ================= FILTRES (une seule ligne) ================= */
+    .filtres { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+    .segments { display: flex; background: var(--fond); border-radius: 12px; padding: 4px; gap: 2px; }
+
+    .segments button {
+        border: none;
+        background: transparent;
+        font: inherit;
+        font-weight: 500;
+        font-size: 15px;
+        color: var(--texte-2);
+        padding: 8px 16px;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: background .2s, color .2s;
+    }
+
+    .segments button:hover { color: var(--texte); }
+    .segments button.actif { background: var(--surface); color: var(--texte); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+
+    .dates { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--texte-2); font-size: 15px; }
+
+    .dates input {
+        font: inherit;
+        font-size: 15px;
+        padding: 7px 10px;
+        border: 1px solid var(--bordure);
+        border-radius: 10px;
+        color: var(--texte);
+        background: var(--surface);
+    }
+
+    .bouton {
+        font: inherit;
+        font-weight: 600;
+        font-size: 15px;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 16px;
+        cursor: pointer;
+        background: var(--texte);
+        color: white;
+    }
+
+    .bouton.secondaire { background: var(--fond); color: var(--texte-2); }
+
+    /* ================= STATISTIQUES ================= */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 20px; }
+
+    .stat { background: var(--surface); border-radius: 16px; padding: 18px 20px; box-shadow: var(--ombre); }
+    .stat-nom { color: var(--texte-2); font-size: 14px; font-weight: 500; }
+    .stat-valeur { font-size: 30px; font-weight: 700; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+    .stat-valeur small { font-size: 16px; color: var(--texte-3); font-weight: 500; }
+    .stat-detail { color: var(--texte-3); font-size: 13px; min-height: 18px; }
+
+    /* ================= GRAPHIQUE ================= */
+    .graphe-entete { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .graphe-entete h2 { margin: 0; font-size: 18px; }
+
+    .legende { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; color: var(--texte-2); }
+    .legende span { display: inline-flex; align-items: center; gap: 7px; }
+    .trait { width: 22px; height: 0; border-top: 3px solid; border-radius: 2px; }
+    .trait.pointille { border-top-style: dashed; border-top-width: 2px; }
+
+    .conteneur-graphe { position: relative; height: 380px; }
+
+    .message-vide {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: var(--texte-2);
+        background: var(--surface);
+    }
+
+    /* ================= TABLEAU ================= */
+    details summary { cursor: pointer; font-weight: 600; color: var(--texte-2); }
+    .table-scroll { max-height: 320px; overflow: auto; margin-top: 14px; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--bordure); font-size: 15px; }
+    th { position: sticky; top: 0; background: var(--surface); color: var(--texte-2); font-weight: 600; }
+{% endblock %}
+
+{% block contenu %}
+    <a href="{% url 'dashboard' %}" class="retour">← Tableau de bord</a>
+
+    <div class="titre-ligne">
+        <h1 class="titre-page">{{ mesure.nom }}</h1>
+        <span id="etat-actuel"></span>
+    </div>
+
+    <!-- A4 : Filtres -->
+    <div class="bloc filtres">
+        <div class="segments" id="segments">
+            <button data-periode="1h">1 heure</button>
+            <button data-periode="24h" class="actif">24 heures</button>
+            <button data-periode="7j">7 jours</button>
+            <button data-periode="30j">30 jours</button>
+            <button data-periode="tout">Tout</button>
+        </div>
+        <form class="dates" id="form-dates">
+            Du <input type="date" id="debut">
+            au <input type="date" id="fin">
+            <button type="submit" class="bouton">Appliquer</button>
+            <button type="button" class="bouton secondaire" id="reinitialiser">Réinitialiser</button>
+        </form>
+    </div>
+
+    <!-- A4 : Statistiques -->
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-nom">Dernière valeur</div>
+            <div class="stat-valeur" id="stat-actuelle">--</div>
+            <div class="stat-detail" id="stat-actuelle-date"></div>
+        </div>
+        <div class="stat">
+            <div class="stat-nom">Minimum</div>
+            <div class="stat-valeur" id="stat-min">--</div>
+            <div class="stat-detail" id="stat-min-date"></div>
+        </div>
+        <div class="stat">
+            <div class="stat-nom">Maximum</div>
+            <div class="stat-valeur" id="stat-max">--</div>
+            <div class="stat-detail" id="stat-max-date"></div>
+        </div>
+        <div class="stat">
+            <div class="stat-nom">Moyenne</div>
+            <div class="stat-valeur" id="stat-moy">--</div>
+            <div class="stat-detail" id="stat-nombre"></div>
+        </div>
+    </div>
+
+    <!-- A3 : Graphique -->
+    <div class="bloc">
+        <div class="graphe-entete">
+            <h2 id="titre-graphe">{{ mesure.nom }} ({{ mesure.unite }})</h2>
+            <div class="legende" id="legende"></div>
+        </div>
+        <div class="conteneur-graphe">
+            <canvas id="graphe"></canvas>
+            <div class="message-vide" id="message-vide">
+                <div>Aucune mesure sur cette période.</div>
+                <button class="bouton secondaire" id="voir-tout">Afficher toutes les mesures</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Les données en tableau -->
+    <div class="bloc">
+        <details>
+            <summary>Voir les données en tableau</summary>
+            <div class="table-scroll">
+                <table>
+                    <thead><tr><th>Date</th><th>{{ mesure.nom }} ({{ mesure.unite }})</th><th>État</th></tr></thead>
+                    <tbody id="tableau"></tbody>
+                </table>
+            </div>
+        </details>
+    </div>
+{% endblock %}
+
+{% block script %}
+<!-- Chart.js + adaptateur pour l'axe du temps -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<script>
+    const CHAMP = "{{ mesure.code }}";
+    const UNITE = CONFIG.mesures[CHAMP].unite;
+    const SEUILS = CONFIG.seuils[CHAMP];
+    const COULEUR = getComputedStyle(document.documentElement).getPropertyValue('--' + CHAMP).trim();
+    const URL_API = "{% url 'api_mesures' %}";
+
+    // Filtre actuel : soit une période rapide, soit des dates
+    let filtre = { periode: '24h' };
+    let graphe = null;
+
+    // Police par défaut du graphique
+    Chart.defaults.font.family = "'Outfit', system-ui, 'Segoe UI', sans-serif";
+
+    // ---------- Légende HTML (identité jamais par la couleur seule) ----------
+    document.getElementById('legende').innerHTML = `
+        <span><i class="trait" style="border-color:${COULEUR}"></i>${CONFIG.mesures[CHAMP].nom}</span>
+        <span><i class="trait pointille" style="border-color:#d9a01e"></i>Seuils attention (${SEUILS.attention_min} / ${SEUILS.attention_max} ${UNITE})</span>
+        <span><i class="trait pointille" style="border-color:#d03b3b"></i>Seuils critiques (${SEUILS.critique_min} / ${SEUILS.critique_max} ${UNITE})</span>`;
+
+    // ---------- Ligne horizontale de seuil ----------
+    function ligneSeuil(valeur, couleur, debut, fin) {
+        return {
+            data: [{ x: debut, y: valeur }, { x: fin, y: valeur }],
+            borderColor: couleur,
+            borderWidth: 1.5,
+            borderDash: [6, 5],
+            pointRadius: 0,
+            pointHitRadius: 0,
+            fill: false,
+            estSeuil: true,
+        };
+    }
+
+    // ---------- Crée / met à jour le graphique ----------
+    function dessinerGraphique(points) {
+        // Si plus de 30 min sans mesure, on coupe la courbe (pas de fausse ligne droite)
+        const TROU_MAX = 30 * 60 * 1000;
+        const donnees = [];
+        points.forEach((p, i) => {
+            const x = new Date(p.dt);
+            if (i > 0 && x - donnees[donnees.length - 1].x > TROU_MAX) {
+                donnees.push({ x: new Date(x.getTime() - 1), y: null });
+            }
+            donnees.push({ x, y: p.v });
+        });
+        const debut = donnees.length ? donnees[0].x : new Date();
+        const fin = donnees.length ? donnees[donnees.length - 1].x : new Date();
+
+        const datasets = [
+            {
+                label: CONFIG.mesures[CHAMP].nom,
+                data: donnees,
+                borderColor: COULEUR,
+                backgroundColor: COULEUR + '1f',      // remplissage léger sous la courbe
+                borderWidth: 2,
+                fill: 'origin',
+                tension: 0.3,
+                spanGaps: false,
+                pointRadius: donnees.length > 60 ? 0 : 3,
+                pointHoverRadius: 6,
+                pointBackgroundColor: COULEUR,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+            },
+            ligneSeuil(SEUILS.critique_max, '#d03b3b', debut, fin),
+            ligneSeuil(SEUILS.attention_max, '#d9a01e', debut, fin),
+            ligneSeuil(SEUILS.attention_min, '#d9a01e', debut, fin),
+            ligneSeuil(SEUILS.critique_min, '#d03b3b', debut, fin),
+        ];
+
+        // Échelle Y : on montre les données ET les seuils
+        const valeurs = donnees.filter(d => d.y !== null).map(d => d.y).concat([SEUILS.critique_min, SEUILS.critique_max]);
+        const yMin = Math.floor(Math.min(...valeurs) - 1);
+        const yMax = Math.ceil(Math.max(...valeurs) + 1);
+
+        if (graphe) {
+            graphe.data.datasets = datasets;
+            graphe.options.scales.y.suggestedMin = yMin;
+            graphe.options.scales.y.suggestedMax = yMax;
+            graphe.update();
+            return;
+        }
+
+        graphe = new Chart(document.getElementById('graphe'), {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 400 },
+                interaction: { mode: 'nearest', axis: 'x', intersect: false },   // survol facile
+                plugins: {
+                    legend: { display: false },                                 // légende HTML au-dessus
+                    tooltip: {
+                        filter: item => !item.dataset.estSeuil,
+                        backgroundColor: '#14161c',
+                        padding: 12,
+                        cornerRadius: 10,
+                        titleFont: { weight: '500' },
+                        bodyFont: { size: 15, weight: '600' },
+                        displayColors: false,
+                        callbacks: {
+                            title: items => formatDate(items[0].raw.x),
+                            label: item => {
+                                const etat = TEXTES_ETAT[etatValeur(CHAMP, item.raw.y)];
+                                return `${formatNombre(item.raw.y)} ${UNITE}  ·  ${etat.icone} ${etat.texte}`;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            tooltipFormat: 'dd/MM/yyyy HH:mm:ss',
+                            displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM', week: 'dd/MM', month: 'MM/yyyy' },
+                        },
+                        grid: { display: false },
+                        ticks: { color: '#8b8f9a', maxRotation: 0, autoSkipPadding: 24 },
+                        border: { color: '#e6e8ee' },
+                    },
+                    y: {
+                        suggestedMin: yMin,
+                        suggestedMax: yMax,
+                        grid: { color: '#eef0f4' },
+                        border: { display: false },
+                        ticks: { color: '#8b8f9a', callback: v => v + ' ' + UNITE },
+                    },
+                },
+            },
+        });
+    }
+
+    // ---------- Statistiques ----------
+    function afficherStats(stats, points) {
+        const u = `<small> ${UNITE}</small>`;
+        const derniere = points.length ? points[points.length - 1] : null;
+
+        document.getElementById('stat-actuelle').innerHTML = derniere ? formatNombre(derniere.v) + u : '--';
+        document.getElementById('stat-actuelle-date').textContent = derniere ? formatDate(derniere.dt, false) : '';
+        document.getElementById('stat-min').innerHTML = stats.nombre ? formatNombre(stats.min) + u : '--';
+        document.getElementById('stat-min-date').textContent = stats.date_min ? 'le ' + formatDate(stats.date_min, false) : '';
+        document.getElementById('stat-max').innerHTML = stats.nombre ? formatNombre(stats.max) + u : '--';
+        document.getElementById('stat-max-date').textContent = stats.date_max ? 'le ' + formatDate(stats.date_max, false) : '';
+        document.getElementById('stat-moy').innerHTML = stats.nombre ? formatNombre(stats.moyenne) + u : '--';
+        document.getElementById('stat-nombre').textContent = stats.nombre + ' mesure' + (stats.nombre > 1 ? 's' : '');
+
+        document.getElementById('etat-actuel').innerHTML = htmlPastille(etatValeur(CHAMP, derniere ? derniere.v : null));
+    }
+
+    // ---------- Tableau (les plus récentes en premier) ----------
+    function afficherTableau(points) {
+        document.getElementById('tableau').innerHTML = points.slice().reverse().slice(0, 500).map(p =>
+            `<tr><td>${formatDate(p.dt)}</td><td>${formatNombre(p.v)}</td><td>${htmlPastille(etatValeur(CHAMP, p.v))}</td></tr>`
+        ).join('') || '<tr><td colspan="3">Aucune mesure</td></tr>';
+    }
+
+    // ---------- Charge les données selon le filtre ----------
+    async function charger() {
+        const params = new URLSearchParams({ champ: CHAMP, ...filtre });
+        const reponse = await fetch(URL_API + '?' + params);
+        const donnees = await reponse.json();
+
+        document.getElementById('message-vide').style.display = donnees.points.length ? 'none' : 'flex';
+        dessinerGraphique(donnees.points);
+        afficherStats(donnees.stats, donnees.points);
+        afficherTableau(donnees.points);
+    }
+
+    // ---------- Boutons de période ----------
+    function choisirPeriode(periode) {
+        filtre = { periode };
+        document.querySelectorAll('#segments button').forEach(b =>
+            b.classList.toggle('actif', b.dataset.periode === periode));
+        document.getElementById('debut').value = '';
+        document.getElementById('fin').value = '';
+        charger();
+    }
+
+    document.querySelectorAll('#segments button').forEach(b =>
+        b.addEventListener('click', () => choisirPeriode(b.dataset.periode)));
+
+    document.getElementById('voir-tout').addEventListener('click', () => choisirPeriode('tout'));
+
+    // ---------- Filtre par dates ----------
+    document.getElementById('form-dates').addEventListener('submit', e => {
+        e.preventDefault();
+        const debut = document.getElementById('debut').value;
+        const fin = document.getElementById('fin').value;
+        if (!debut && !fin) return;
+        if (debut && fin && debut > fin) { alert('La date de début doit être avant la date de fin.'); return; }
+        filtre = {};
+        if (debut) filtre.debut = debut;
+        if (fin) filtre.fin = fin;
+        document.querySelectorAll('#segments button').forEach(b => b.classList.remove('actif'));
+        charger();
+    });
+
+    document.getElementById('reinitialiser').addEventListener('click', () => choisirPeriode('24h'));
+
+    // ---------- Démarrage + mise à jour auto (seulement pour les périodes rapides) ----------
+    charger();
+    setInterval(() => { if (filtre.periode && filtre.periode !== 'tout') charger(); }, 30000);
+</script>
+{% endblock %}

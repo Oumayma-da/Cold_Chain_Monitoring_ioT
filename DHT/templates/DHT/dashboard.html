@@ -1,0 +1,332 @@
+{% extends 'DHT/base.html' %}
+
+{% block titre %}Tableau de bord IoT{% endblock %}
+
+{% block style %}
+    /* ================= BANDEAU ÉTAT DU CAPTEUR ================= */
+    .bandeau {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 14px 20px;
+        margin-bottom: 24px;
+        box-shadow: var(--ombre);
+    }
+
+    .capteur { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+
+    .voyant {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--texte-3);
+    }
+
+    .voyant.en-ligne {
+        background: var(--normal);
+        animation: pulse 2s infinite;
+    }
+
+    .voyant.hors-ligne { background: var(--critique); }
+
+    @keyframes pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(12, 163, 12, .45); }
+        70%  { box-shadow: 0 0 0 10px rgba(12, 163, 12, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0); }
+    }
+
+    .derniere { color: var(--texte-2); font-size: 15px; }
+    .derniere strong { color: var(--texte); font-weight: 600; }
+
+    /* ================= CARTES ================= */
+    .cartes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+    }
+
+    .carte {
+        position: relative;
+        display: block;
+        background: var(--surface);
+        border-radius: var(--rayon);
+        padding: 26px 28px 22px;
+        box-shadow: var(--ombre);
+        overflow: hidden;
+        transition: transform .2s, box-shadow .2s;
+        border-top: 5px solid var(--bordure);
+    }
+
+    .carte:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 2px 4px rgba(20, 22, 28, .05), 0 16px 36px rgba(20, 22, 28, .10);
+    }
+
+    .carte.normal    { border-top-color: var(--normal); }
+    .carte.attention { border-top-color: var(--attention); }
+    .carte.critique  { border-top-color: var(--critique); }
+
+    .carte-haut {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .carte-nom { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; }
+
+    .icone {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+    }
+
+    .carte.temp .icone { background: var(--temp-clair); color: var(--temp); }
+    .carte.hum  .icone { background: var(--hum-clair);  color: var(--hum); }
+
+    .valeur {
+        margin: 22px 0 6px;
+        font-size: 64px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -1.5px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .valeur .unite { font-size: 26px; font-weight: 500; color: var(--texte-3); margin-left: 4px; letter-spacing: 0; }
+
+    .valeur.flash { animation: flash .8s; }
+    @keyframes flash { 0% { opacity: .25; } 100% { opacity: 1; } }
+
+    .plage { color: var(--texte-2); font-size: 14px; margin-bottom: 20px; }
+
+    /* ---- Jauge horizontale avec zones ---- */
+    .jauge {
+        position: relative;
+        height: 10px;
+        border-radius: 999px;
+        overflow: visible;
+        display: flex;
+        gap: 2px;
+    }
+
+    .zone { height: 100%; }
+    .zone:first-child { border-radius: 999px 0 0 999px; }
+    .zone:last-child  { border-radius: 0 999px 999px 0; }
+    .zone.critique  { background: #f3c4c4; }
+    .zone.attention { background: #fde3a7; }
+    .zone.normal    { background: #bfe6bf; }
+
+    .curseur {
+        position: absolute;
+        top: 50%;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--surface);
+        border: 5px solid var(--texte);
+        transform: translate(-50%, -50%);
+        transition: left .6s ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
+    }
+
+    .graduations {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--texte-3);
+        margin-top: 8px;
+    }
+
+    .voir {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 22px;
+        padding-top: 16px;
+        border-top: 1px solid var(--bordure);
+        color: var(--texte-2);
+        font-weight: 500;
+    }
+
+    .carte:hover .voir .fleche { transform: translateX(4px); }
+    .fleche { transition: transform .2s; }
+{% endblock %}
+
+{% block contenu %}
+    <h1 class="titre-page">Tableau de bord</h1>
+    <p class="sous-titre">Valeurs en temps réel. Clique sur une carte pour voir son graphique.</p>
+
+    <!-- État du capteur -->
+    <div class="bandeau">
+        <div class="capteur">
+            <span class="voyant" id="voyant"></span>
+            <span id="etat-capteur">Connexion…</span>
+        </div>
+        <div class="derniere">
+            Dernière mesure : <strong id="date-mesure">--</strong>
+            · <span id="temps-ecoule">--</span>
+        </div>
+    </div>
+
+    <div id="zone-cartes">
+        <div class="cartes">
+            <!-- Carte Température -->
+            <a href="{% url 'graphique' 'temp' %}" class="carte temp" id="carte-temp">
+                <div class="carte-haut">
+                    <div class="carte-nom">
+                        <span class="icone">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                        </span>
+                        Température
+                    </div>
+                    <span id="etat-temp"></span>
+                </div>
+                <div class="valeur" id="valeur-temp">--<span class="unite">°C</span></div>
+                <div class="plage" id="plage-temp"></div>
+                <div class="jauge" id="jauge-temp"></div>
+                <div class="graduations" id="grad-temp"></div>
+                <div class="voir"><span>Voir le graphique</span><span class="fleche">→</span></div>
+            </a>
+
+            <!-- Carte Humidité -->
+            <a href="{% url 'graphique' 'hum' %}" class="carte hum" id="carte-hum">
+                <div class="carte-haut">
+                    <div class="carte-nom">
+                        <span class="icone">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z"/></svg>
+                        </span>
+                        Humidité
+                    </div>
+                    <span id="etat-hum"></span>
+                </div>
+                <div class="valeur" id="valeur-hum">--<span class="unite">%</span></div>
+                <div class="plage" id="plage-hum"></div>
+                <div class="jauge" id="jauge-hum"></div>
+                <div class="graduations" id="grad-hum"></div>
+                <div class="voir"><span>Voir le graphique</span><span class="fleche">→</span></div>
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    let derniereDate = null;          // date de la dernière mesure affichée
+    let decalageHorloge = 0;          // différence entre l'heure du serveur et celle du PC
+    const anciennesValeurs = {};
+
+    // ---------- Construit la jauge (zones colorées) une seule fois ----------
+    function construireJauge(champ) {
+        const s = CONFIG.seuils[champ];
+        const zones = [
+            ['critique',  s.echelle_min,   s.critique_min],
+            ['attention', s.critique_min,  s.attention_min],
+            ['normal',    s.attention_min, s.attention_max],
+            ['attention', s.attention_max, s.critique_max],
+            ['critique',  s.critique_max,  s.echelle_max],
+        ];
+        const jauge = document.getElementById('jauge-' + champ);
+        jauge.innerHTML = zones
+            .filter(([etat, de, a]) => a > de)
+            .map(([etat, de, a]) => `<div class="zone ${etat}" style="flex:${a - de}"></div>`)
+            .join('') + `<div class="curseur" id="curseur-${champ}" style="left:0%; display:none"></div>`;
+
+        const unite = CONFIG.mesures[champ].unite;
+        document.getElementById('grad-' + champ).innerHTML =
+            `<span>${s.echelle_min}${unite}</span><span>${s.echelle_max}${unite}</span>`;
+        document.getElementById('plage-' + champ).textContent =
+            `Plage normale : ${s.attention_min} à ${s.attention_max} ${unite}`;
+    }
+
+    // ---------- Met à jour une carte ----------
+    function majCarte(champ, valeur) {
+        const s = CONFIG.seuils[champ];
+        const etat = etatValeur(champ, valeur);
+        const unite = CONFIG.mesures[champ].unite;
+
+        const carte = document.getElementById('carte-' + champ);
+        carte.classList.remove('normal', 'attention', 'critique');
+        if (etat !== 'inconnu') carte.classList.add(etat);
+
+        document.getElementById('etat-' + champ).innerHTML = htmlPastille(etat);
+
+        const elValeur = document.getElementById('valeur-' + champ);
+        elValeur.innerHTML = `${formatNombre(valeur)}<span class="unite">${unite}</span>`;
+        if (anciennesValeurs[champ] !== undefined && anciennesValeurs[champ] !== valeur) {
+            elValeur.classList.remove('flash');
+            void elValeur.offsetWidth;          // relance l'animation
+            elValeur.classList.add('flash');
+        }
+        anciennesValeurs[champ] = valeur;
+
+        // Position du curseur sur la jauge (bloquée entre 0 et 100 %)
+        const curseur = document.getElementById('curseur-' + champ);
+        const pourcent = (valeur - s.echelle_min) / (s.echelle_max - s.echelle_min) * 100;
+        curseur.style.display = 'block';
+        curseur.style.left = Math.min(100, Math.max(0, pourcent)) + '%';
+    }
+
+    // ---------- Voyant "capteur en ligne / hors ligne" + "il y a ..." ----------
+    function majTemps() {
+        const voyant = document.getElementById('voyant');
+        const etatCapteur = document.getElementById('etat-capteur');
+        if (!derniereDate) return;
+
+        const maintenant = Date.now() + decalageHorloge;
+        const secondes = Math.max(0, Math.floor((maintenant - derniereDate) / 1000));
+        document.getElementById('temps-ecoule').textContent = tempsEcoule(secondes);
+
+        const enLigne = secondes <= CONFIG.horsLigne;
+        voyant.className = 'voyant ' + (enLigne ? 'en-ligne' : 'hors-ligne');
+        etatCapteur.textContent = enLigne ? 'Capteur en ligne' : 'Capteur hors ligne';
+    }
+
+    // ---------- Récupère la dernière mesure depuis l'API ----------
+    async function chargerDerniereMesure() {
+        try {
+            const reponse = await fetch("{% url 'api_derniere' %}");
+            const donnees = await reponse.json();
+
+            // Si l'admin a changé les seuils, on redessine les jauges
+            if (JSON.stringify(donnees.seuils) !== JSON.stringify(CONFIG.seuils)) {
+                CONFIG.seuils = donnees.seuils;
+                construireJauge('temp');
+                construireJauge('hum');
+            }
+
+            if (!donnees.mesure) {
+                document.getElementById('zone-cartes').innerHTML =
+                    '<div class="vide">Aucune mesure disponible pour le moment.</div>';
+                document.getElementById('etat-capteur').textContent = 'En attente de mesures';
+                return;
+            }
+
+            const m = donnees.mesure;
+            derniereDate = new Date(m.dt).getTime();
+            decalageHorloge = new Date(donnees.serveur_maintenant).getTime() - Date.now();
+
+            majCarte('temp', m.temp);
+            majCarte('hum', m.hum);
+            document.getElementById('date-mesure').textContent = formatDate(m.dt);
+            majTemps();
+        } catch (erreur) {
+            document.getElementById('voyant').className = 'voyant hors-ligne';
+            document.getElementById('etat-capteur').textContent = 'Serveur injoignable';
+        }
+    }
+
+    // ---------- Démarrage ----------
+    construireJauge('temp');
+    construireJauge('hum');
+    chargerDerniereMesure();
+    setInterval(chargerDerniereMesure, CONFIG.rafraichissement * 1000);   // nouvelles valeurs
+    setInterval(majTemps, 1000);                                          // "il y a ..."
+</script>
+{% endblock %}
