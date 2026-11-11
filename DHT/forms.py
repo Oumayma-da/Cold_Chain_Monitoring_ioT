@@ -38,6 +38,8 @@ from .models import Seuil  # noqa: E402
 class SeuilForm(forms.ModelForm):
     class Meta:
         model = Seuil
-        fields = ['echelle_min', 'critique_min', 'attention_min',
-                  'attention_max', 'critique_max', 'echelle_max']
-        widgets = {nom: forms.NumberInput(attrs={'step': '0.1'}) for nom in fields}
+        fields = ['valeur_min', 'valeur_max']
+        widgets = {
+            'valeur_min': forms.NumberInput(attrs={'step': '0.1'}),
+            'valeur_max': forms.NumberInput(attrs={'step': '0.1'}),
+        }

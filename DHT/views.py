@@ -13,13 +13,18 @@ MESURES = {
     'hum': {'code': 'hum', 'nom': 'Humidité', 'unite': '%'},
 }
 
-# B2 : scénarios de test en un clic (les 3 cas du TP + humidité)
-SCENARIOS = {
-    'normal':   {'nom': 'Normal',            'temp': 20, 'hum': 50, 'etat': 'normal'},
-    'limite':   {'nom': 'Limite (25 °C)',    'temp': 25, 'hum': 55, 'etat': 'attention'},
-    'alerte':   {'nom': 'Alerte (30 °C)',    'temp': 30, 'hum': 55, 'etat': 'critique'},
-    'humidite': {'nom': 'Humidité critique', 'temp': 21, 'hum': 80, 'etat': 'critique'},
-}
+# B2 : scénarios de test en un clic, calculés à partir des seuils actuels
+def scenarios():
+    s = Seuil.tous()
+    t, h = s['temp'], s['hum']
+    temp_ok = round((t['min'] + t['max']) / 2, 1)   # milieu de la plage
+    hum_ok = round((h['min'] + h['max']) / 2, 1)
+    return {
+        'normal': {'nom': 'Normal',              'temp': temp_ok,      'hum': hum_ok, 'etat': 'normal'},
+        'chaud':  {'nom': 'Trop chaud',          'temp': t['max'] + 3, 'hum': hum_ok, 'etat': 'critique'},
+        'froid':  {'nom': 'Trop froid',          'temp': t['min'] - 2, 'hum': hum_ok, 'etat': 'critique'},
+        'humide': {'nom': 'Humidité trop haute', 'temp': temp_ok,      'hum': min(100, h['max'] + 10), 'etat': 'critique'},
+    }
 
 
 def config_js():
@@ -69,10 +74,11 @@ def inserer_test(request):
 
     if request.method == 'POST':
         scenario = request.POST.get('scenario')
+        liste = scenarios()
 
-        if scenario in SCENARIOS:
+        if scenario in liste:
             # Bouton de scénario rapide
-            s = SCENARIOS[scenario]
+            s = liste[scenario]
             mesure = enregistrer_mesure(s['temp'], s['hum'])
             messages.success(request, f"Scénario « {s['nom']} » inséré : {mesure.temp} °C / {mesure.hum} %")
             return redirect('inserer_test')
@@ -91,7 +97,7 @@ def inserer_test(request):
         'config': config_js(),
         'page': 'inserer',
         'form': form,
-        'scenarios': SCENARIOS,
+        'scenarios': scenarios(),
         'dernieres': dernieres,
     })
 
@@ -108,7 +114,8 @@ def modifier_seuils(request):
         # Bouton "Rétablir les valeurs par défaut" (celles de settings.py)
         if action in ('defaut_temp', 'defaut_hum'):
             champ = action.replace('defaut_', '')
-            Seuil.objects.filter(champ=champ).update(**settings.SEUILS[champ])
+            defaut = settings.SEUILS[champ]
+            Seuil.objects.filter(champ=champ).update(valeur_min=defaut['min'], valeur_max=defaut['max'])
             messages.success(request, f"Seuils {MESURES[champ]['nom']} remis aux valeurs par défaut.")
             return redirect('modifier_seuils')
 

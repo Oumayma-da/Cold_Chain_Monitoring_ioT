@@ -15,17 +15,13 @@ class Dht11(models.Model):
 
 
 class Seuil(models.Model):
-    """Seuils modifiables par l'admin (une ligne pour temp, une ligne pour hum)."""
+    """Seuils min / max modifiables par l'admin (une ligne pour temp, une pour hum)."""
 
     CHAMPS = [('temp', 'Température'), ('hum', 'Humidité')]
 
     champ = models.CharField("Mesure", max_length=10, choices=CHAMPS, unique=True)
-    critique_min = models.FloatField("Critique en dessous de")
-    attention_min = models.FloatField("Attention en dessous de")
-    attention_max = models.FloatField("Attention au-dessus de")
-    critique_max = models.FloatField("Critique au-dessus de")
-    echelle_min = models.FloatField("Début de la jauge")
-    echelle_max = models.FloatField("Fin de la jauge")
+    valeur_min = models.FloatField("Minimum")
+    valeur_max = models.FloatField("Maximum")
     modifie_le = models.DateTimeField("Modifié le", auto_now=True)
 
     class Meta:
@@ -33,36 +29,28 @@ class Seuil(models.Model):
         verbose_name_plural = "Seuils"
 
     def __str__(self):
-        return f"Seuils {self.get_champ_display()}"
+        return f"{self.get_champ_display()} : {self.valeur_min} à {self.valeur_max}"
 
-    # Vérifie que les valeurs sont dans le bon ordre
+    # Le minimum doit être plus petit que le maximum
     def clean(self):
-        valeurs = [self.echelle_min, self.critique_min, self.attention_min,
-                   self.attention_max, self.critique_max, self.echelle_max]
-        if None in valeurs:
-            return
-        if not (self.echelle_min <= self.critique_min <= self.attention_min
-                < self.attention_max <= self.critique_max <= self.echelle_max):
-            raise ValidationError(
-                "Ordre obligatoire : début jauge ≤ critique min ≤ attention min "
-                "< attention max ≤ critique max ≤ fin jauge."
-            )
+        if self.valeur_min is not None and self.valeur_max is not None:
+            if self.valeur_min >= self.valeur_max:
+                raise ValidationError("Le minimum doit être plus petit que le maximum.")
 
     def en_dict(self):
-        return {
-            'critique_min': self.critique_min, 'attention_min': self.attention_min,
-            'attention_max': self.attention_max, 'critique_max': self.critique_max,
-            'echelle_min': self.echelle_min, 'echelle_max': self.echelle_max,
-        }
+        return {'min': self.valeur_min, 'max': self.valeur_max}
 
     @classmethod
     def obtenir(cls, champ):
-        """Renvoie le seuil d'une mesure. S'il n'existe pas encore,
-        il est créé avec les valeurs par défaut de settings.SEUILS."""
-        seuil, _ = cls.objects.get_or_create(champ=champ, defaults=settings.SEUILS[champ])
+        """Renvoie le seuil d'une mesure (créé avec les valeurs par défaut s'il n'existe pas)."""
+        defaut = settings.SEUILS[champ]
+        seuil, _ = cls.objects.get_or_create(
+            champ=champ,
+            defaults={'valeur_min': defaut['min'], 'valeur_max': defaut['max']},
+        )
         return seuil
 
     @classmethod
     def tous(cls):
-        """{'temp': {...}, 'hum': {...}} : utilisé par les pages et (étape C) les alertes."""
+        """{'temp': {'min': 2, 'max': 8}, 'hum': {...}} : utilisé par les pages et les alertes."""
         return {champ: cls.obtenir(champ).en_dict() for champ, _ in cls.CHAMPS}

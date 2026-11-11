@@ -40,4 +40,4 @@ class Dht11Admin(admin.ModelAdmin):
 # Les seuils sont aussi modifiables depuis l'admin Django
 @admin.register(Seuil)
 class SeuilAdmin(admin.ModelAdmin):
-    list_display = ('champ', 'critique_min', 'attention_min', 'attention_max', 'critique_max', 'modifie_le')
+    list_display = ('champ', 'valeur_min', 'valeur_max', 'modifie_le')

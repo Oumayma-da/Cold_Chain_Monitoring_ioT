@@ -204,8 +204,7 @@
     // ---------- Légende HTML (identité jamais par la couleur seule) ----------
     document.getElementById('legende').innerHTML = `
         <span><i class="trait" style="border-color:${COULEUR}"></i>${CONFIG.mesures[CHAMP].nom}</span>
-        <span><i class="trait pointille" style="border-color:#d9a01e"></i>Seuils attention (${SEUILS.attention_min} / ${SEUILS.attention_max} ${UNITE})</span>
-        <span><i class="trait pointille" style="border-color:#d03b3b"></i>Seuils critiques (${SEUILS.critique_min} / ${SEUILS.critique_max} ${UNITE})</span>`;
+        <span><i class="trait pointille" style="border-color:#d03b3b"></i>Limites min / max (${SEUILS.min} / ${SEUILS.max} ${UNITE})</span>`;
 
     // ---------- Ligne horizontale de seuil ----------
     function ligneSeuil(valeur, couleur, debut, fin) {
@@ -252,14 +251,12 @@
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
             },
-            ligneSeuil(SEUILS.critique_max, '#d03b3b', debut, fin),
-            ligneSeuil(SEUILS.attention_max, '#d9a01e', debut, fin),
-            ligneSeuil(SEUILS.attention_min, '#d9a01e', debut, fin),
-            ligneSeuil(SEUILS.critique_min, '#d03b3b', debut, fin),
+            ligneSeuil(SEUILS.max, '#d03b3b', debut, fin),
+            ligneSeuil(SEUILS.min, '#d03b3b', debut, fin),
         ];
 
         // Échelle Y : on montre les données ET les seuils
-        const valeurs = donnees.filter(d => d.y !== null).map(d => d.y).concat([SEUILS.critique_min, SEUILS.critique_max]);
+        const valeurs = donnees.filter(d => d.y !== null).map(d => d.y).concat([SEUILS.min, SEUILS.max]);
         const yMin = Math.floor(Math.min(...valeurs) - 1);
         const yMax = Math.ceil(Math.max(...valeurs) + 1);
 

@@ -133,16 +133,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #  critique  : en dessous de critique_min ou au-dessus de critique_max
 # =========================================================
 SEUILS = {
-    "temp": {
-        "critique_min": 10, "attention_min": 15,
-        "attention_max": 23, "critique_max": 25,   # 25 °C = seuil d'alerte du TP
-        "echelle_min": 0, "echelle_max": 50,       # étendue de la jauge (DHT11 : 0 à 50 °C)
-    },
-    "hum": {
-        "critique_min": 20, "attention_min": 30,
-        "attention_max": 60, "critique_max": 70,
-        "echelle_min": 0, "echelle_max": 100,
-    },
+    "temp": {"min": 2, "max": 8},     # frigo des catalyseurs : 2 à 8 °C
+    "hum":  {"min": 30, "max": 70},
 }
 
 # Si aucune mesure depuis ce nombre de secondes -> capteur "hors ligne"

@@ -183,20 +183,18 @@
         // ================= OUTILS COMMUNS =================
         const CONFIG = JSON.parse(document.getElementById('config').textContent);
 
-        // Renvoie l'état d'une valeur : normal / attention / critique
+        // Renvoie l'état d'une valeur : normal (entre min et max) ou critique (en dehors)
         function etatValeur(champ, valeur) {
             if (valeur === null || valeur === undefined) return 'inconnu';
             const s = CONFIG.seuils[champ];
-            if (valeur < s.critique_min || valeur > s.critique_max) return 'critique';
-            if (valeur < s.attention_min || valeur > s.attention_max) return 'attention';
+            if (valeur < s.min || valeur > s.max) return 'critique';
             return 'normal';
         }
 
         const TEXTES_ETAT = {
-            normal:    { icone: '✓', texte: 'Normal' },
-            attention: { icone: '!', texte: 'Attention' },
-            critique:  { icone: '⚠', texte: 'Critique' },
-            inconnu:   { icone: '•', texte: 'Aucune donnée' },
+            normal:   { icone: '✓', texte: 'Normal' },
+            critique: { icone: '⚠', texte: 'Hors limites' },
+            inconnu:  { icone: '•', texte: 'Aucune donnée' },
         };
 
         function htmlPastille(etat) {

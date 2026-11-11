@@ -8,71 +8,71 @@
 
     .message { padding: 14px 18px; border-radius: 14px; margin-bottom: 20px; font-weight: 500; background: #e3f5e3; color: #0a6e0a; }
 
-    .carte { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 24px; border-top: 5px solid var(--bordure); }
+    .carte { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 26px; border-top: 5px solid var(--bordure); }
     .carte.temp { border-top-color: var(--temp); }
     .carte.hum  { border-top-color: var(--hum); }
 
-    .carte-nom { display: flex; align-items: center; gap: 12px; font-size: 19px; font-weight: 700; margin-bottom: 4px; }
-    .icone { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; }
+    .carte-nom { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 700; }
+    .icone { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; }
     .carte.temp .icone { background: var(--temp-clair); color: var(--temp); }
     .carte.hum  .icone { background: var(--hum-clair);  color: var(--hum); }
-    .modifie { color: var(--texte-3); font-size: 13px; margin: 0 0 20px; }
+    .modifie { color: var(--texte-3); font-size: 13px; margin: 6px 0 22px; }
 
-    /* ---- Aperçu de la jauge ---- */
-    .apercu-titre { font-size: 14px; font-weight: 600; color: var(--texte-2); margin-bottom: 8px; }
-    .jauge { display: flex; gap: 2px; height: 14px; margin-bottom: 6px; }
-    .zone { height: 100%; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: rgba(0,0,0,.45); overflow: hidden; }
-    .zone:first-child { border-radius: 999px 0 0 999px; }
-    .zone:last-child  { border-radius: 0 999px 999px 0; }
-    .zone.critique  { background: #f3c4c4; }
-    .zone.attention { background: #fde3a7; }
-    .zone.normal    { background: #bfe6bf; }
-    .resume { font-size: 14px; color: var(--texte-2); margin: 8px 0 22px; line-height: 1.6; }
+    /* ---- Min / Max ---- */
+    .min-max { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .champ label { display: block; font-weight: 600; color: var(--texte-2); margin-bottom: 8px; }
 
-    /* ---- Champs ---- */
-    .champs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
-    .champ label { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-    .pastille-mini { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-    .pastille-mini.critique  { background: var(--critique); }
-    .pastille-mini.attention { background: var(--attention); }
-    .pastille-mini.echelle   { background: var(--texte-3); }
-
-    .champ input {
-        width: 100%; font: inherit; font-size: 16px; padding: 9px 12px;
-        border: 1px solid var(--bordure); border-radius: 10px; background: var(--surface); color: var(--texte);
+    .saisie { position: relative; }
+    .saisie input {
+        width: 100%; font: inherit; font-size: 30px; font-weight: 700; padding: 12px 56px 12px 16px;
+        border: 2px solid var(--bordure); border-radius: 14px; background: var(--surface); color: var(--texte);
+        font-variant-numeric: tabular-nums;
     }
-    .champ input:focus { outline: 2px solid var(--hum); border-color: transparent; }
-    .errorlist { color: var(--critique); margin: 4px 0 0; padding: 0; list-style: none; font-size: 13px; }
-    .erreur-generale { background: #fbe4e4; color: #a32424; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 14px; }
-    .erreur-generale .errorlist { color: inherit; }
+    .saisie input:focus { outline: none; border-color: var(--hum); }
+    .saisie .unite { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--texte-3); font-size: 18px; font-weight: 500; }
+
+    .errorlist { color: var(--critique); margin: 6px 0 0; padding: 0; list-style: none; font-size: 14px; }
+    .erreur-generale { background: #fbe4e4; color: #a32424; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 14px; }
+    .erreur-generale .errorlist { color: inherit; margin: 0; }
+
+    /* ---- Aperçu ---- */
+    .apercu { display: flex; gap: 2px; height: 34px; margin-top: 22px; border-radius: 12px; overflow: hidden; font-size: 13px; font-weight: 600; }
+    .apercu div { flex: 1; display: grid; place-items: center; }
+    .apercu .bas, .apercu .haut { background: #fbe4e4; color: #a32424; }
+    .apercu .ok { background: #e3f5e3; color: #0a6e0a; }
+    #erreur-temp, #erreur-hum { color: var(--critique); font-size: 14px; margin-top: 8px; min-height: 20px; }
+
+    /* ---- Préréglages ---- */
+    .prereglages { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+    .prereglages span { color: var(--texte-3); font-size: 14px; }
+    .chip {
+        font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+        background: var(--fond); color: var(--texte-2); border: 1px solid var(--bordure);
+        border-radius: 999px; padding: 6px 14px;
+    }
+    .chip:hover { background: var(--surface); color: var(--texte); }
 
     .actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
-    .bouton { font: inherit; font-weight: 600; font-size: 15px; border: none; border-radius: 12px; padding: 10px 18px; cursor: pointer; background: var(--texte); color: white; }
+    .bouton { font: inherit; font-weight: 600; font-size: 15px; border: none; border-radius: 12px; padding: 11px 20px; cursor: pointer; background: var(--texte); color: white; }
     .bouton.secondaire { background: var(--fond); color: var(--texte-2); }
-
-    .info { background: var(--surface); border-radius: 16px; box-shadow: var(--ombre); padding: 16px 20px; margin-bottom: 24px; color: var(--texte-2); font-size: 15px; line-height: 1.6; }
 {% endblock %}
 
 {% block contenu %}
     <h1 class="titre-page">Seuils</h1>
-    <p class="sous-titre">Réservé à l'administrateur : adapte les limites selon ton cas (frigo de labo, salle serveur, serre…).</p>
+    <p class="sous-titre">
+        Entre le minimum et le maximum : <span class="pastille normal">✓ Normal</span>
+        &nbsp;En dehors : <span class="pastille critique">⚠ Hors limites</span>
+    </p>
 
     {% for message in messages %}
         <div class="message">✓ {{ message }}</div>
     {% endfor %}
 
-    <div class="info">
-        <strong>Comment ça marche :</strong>
-        entre « Attention en dessous » et « Attention au-dessus » → <span class="pastille normal">✓ Normal</span> ;
-        au-delà des seuils critiques → <span class="pastille critique">⚠ Critique</span> ;
-        entre les deux → <span class="pastille attention">! Attention</span>.
-        Les cartes et les graphiques utilisent tout de suite les nouveaux seuils.
-    </div>
-
     <div class="grille">
         {% for c in cartes %}
         <form method="post" class="carte {{ c.mesure.code }}" data-champ="{{ c.mesure.code }}" novalidate>
             {% csrf_token %}
+
             <div class="carte-nom">
                 <span class="icone">
                     {% if c.mesure.code == 'temp' %}
@@ -81,30 +81,46 @@
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z"/></svg>
                     {% endif %}
                 </span>
-                {{ c.mesure.nom }} ({{ c.mesure.unite }})
+                {{ c.mesure.nom }}
             </div>
             <p class="modifie">Dernière modification : {{ c.seuil.modifie_le|date:"d/m/Y H:i" }}</p>
-
-            <!-- Aperçu en direct -->
-            <div class="apercu-titre">Aperçu</div>
-            <div class="jauge"></div>
-            <div class="resume"></div>
 
             {% if c.form.non_field_errors %}
                 <div class="erreur-generale">{{ c.form.non_field_errors }}</div>
             {% endif %}
 
-            <div class="champs">
-                {% for champ in c.form %}
+            <!-- Les 2 valeurs -->
+            <div class="min-max">
                 <div class="champ">
-                    <label for="{{ champ.id_for_label }}">
-                        <span class="pastille-mini {% if 'critique' in champ.name %}critique{% elif 'attention' in champ.name %}attention{% else %}echelle{% endif %}"></span>
-                        {{ champ.label }}
-                    </label>
-                    {{ champ }}
-                    {{ champ.errors }}
+                    <label for="{{ c.form.valeur_min.id_for_label }}">Minimum</label>
+                    <div class="saisie">{{ c.form.valeur_min }}<span class="unite">{{ c.mesure.unite }}</span></div>
+                    {{ c.form.valeur_min.errors }}
                 </div>
-                {% endfor %}
+                <div class="champ">
+                    <label for="{{ c.form.valeur_max.id_for_label }}">Maximum</label>
+                    <div class="saisie">{{ c.form.valeur_max }}<span class="unite">{{ c.mesure.unite }}</span></div>
+                    {{ c.form.valeur_max.errors }}
+                </div>
+            </div>
+
+            <!-- Aperçu en direct -->
+            <div class="apercu">
+                <div class="bas"></div>
+                <div class="ok"></div>
+                <div class="haut"></div>
+            </div>
+            <div id="erreur-{{ c.mesure.code }}"></div>
+
+            <!-- Préréglages : remplissent les champs (il faut ensuite cliquer sur Enregistrer) -->
+            <div class="prereglages">
+                <span>Préréglages :</span>
+                {% if c.mesure.code == 'temp' %}
+                    <button type="button" class="chip" data-min="2" data-max="8">Frigo catalyseurs (2 à 8 °C)</button>
+                    <button type="button" class="chip" data-min="15" data-max="25">Test à l'air libre (15 à 25 °C)</button>
+                {% else %}
+                    <button type="button" class="chip" data-min="30" data-max="70">Standard (30 à 70 %)</button>
+                    <button type="button" class="chip" data-min="40" data-max="60">Strict (40 à 60 %)</button>
+                {% endif %}
             </div>
 
             <div class="actions">
@@ -118,39 +134,36 @@
 
 {% block script %}
 <script>
-    // Met à jour l'aperçu de la jauge pendant que l'admin tape
     document.querySelectorAll('form[data-champ]').forEach(form => {
         const champ = form.dataset.champ;
         const unite = CONFIG.mesures[champ].unite;
-        const lire = nom => parseFloat(form.querySelector(`[name="${champ}-${nom}"]`).value);
+        const champMin = form.querySelector(`[name="${champ}-valeur_min"]`);
+        const champMax = form.querySelector(`[name="${champ}-valeur_max"]`);
 
+        // Met à jour l'aperçu pendant que l'admin tape
         function majApercu() {
-            const v = {
-                emin: lire('echelle_min'), cmin: lire('critique_min'), amin: lire('attention_min'),
-                amax: lire('attention_max'), cmax: lire('critique_max'), emax: lire('echelle_max'),
-            };
-            const jauge = form.querySelector('.jauge');
-            const resume = form.querySelector('.resume');
+            const min = parseFloat(champMin.value);
+            const max = parseFloat(champMax.value);
+            const erreur = document.getElementById('erreur-' + champ);
 
-            const ordreOk = v.emin <= v.cmin && v.cmin <= v.amin && v.amin < v.amax && v.amax <= v.cmax && v.cmax <= v.emax;
-            if (Object.values(v).some(isNaN) || !ordreOk) {
-                jauge.innerHTML = '';
-                resume.innerHTML = '<span style="color:var(--critique)">⚠ Les valeurs ne sont pas dans le bon ordre.</span>';
-                return;
-            }
+            if (isNaN(min) || isNaN(max)) { erreur.textContent = 'Remplis les deux valeurs.'; return; }
+            if (min >= max) { erreur.textContent = '⚠ Le minimum doit être plus petit que le maximum.'; return; }
 
-            const zones = [
-                ['critique', v.emin, v.cmin], ['attention', v.cmin, v.amin], ['normal', v.amin, v.amax],
-                ['attention', v.amax, v.cmax], ['critique', v.cmax, v.emax],
-            ].filter(([, de, a]) => a > de);
-            jauge.innerHTML = zones.map(([etat, de, a]) => `<div class="zone ${etat}" style="flex:${a - de}"></div>`).join('');
-
-            resume.innerHTML =
-                `✓ Normal de <strong>${v.amin}</strong> à <strong>${v.amax} ${unite}</strong><br>` +
-                `⚠ Critique sous <strong>${v.cmin} ${unite}</strong> ou au-dessus de <strong>${v.cmax} ${unite}</strong>`;
+            erreur.textContent = '';
+            form.querySelector('.apercu .bas').textContent = `⚠ moins de ${min} ${unite}`;
+            form.querySelector('.apercu .ok').textContent = `✓ ${min} à ${max} ${unite}`;
+            form.querySelector('.apercu .haut').textContent = `⚠ plus de ${max} ${unite}`;
         }
 
-        form.querySelectorAll('input[type=number]').forEach(i => i.addEventListener('input', majApercu));
+        // Boutons de préréglage
+        form.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
+            champMin.value = chip.dataset.min;
+            champMax.value = chip.dataset.max;
+            majApercu();
+        }));
+
+        champMin.addEventListener('input', majApercu);
+        champMax.addEventListener('input', majApercu);
         majApercu();
     });
 </script>
