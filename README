@@ -1,0 +1,124 @@
+
+
+Initialisation du backend Django pour le projet Cold Chain Monitoring.
+
+    Configuration du projet Django et de Django REST Framework.
+
+    Création du modèle Dht11 pour enregistrer la température, l'humidité et la date de réception.
+
+    Implémentation de l'API POST pour recevoir et enregistrer les mesures IoT.
+
+    Implémentation de l'API GET pour consulter les mesures enregistrées.
+
+    Création des premières migrations de la base de données.
+
+Cette version constitue la première étape du système de surveillance IoT d'un réfrigérateur de laboratoire.
+import os
+
+SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
+ALLOWED_HOSTS = os.environ.get(
+    "DJANGO_ALLOWED_HOSTS",
+    "127.0.0.1,localhost"
+).split(",")
+Cold Chain Monitoring
+
+Système IoT de surveillance d'un réfrigérateur de laboratoire
+
+Projet académique — 5GI-IA-C, année universitaire 2026–2027.
+Équipe : Imane Ammari et Oumayma Dardour.
+Présentation
+
+Cold Chain Monitoring vise à surveiller les conditions de conservation de réactifs dans un réfrigérateur de laboratoire. Un capteur DHT11 connecté à un ESP8266 mesure la température et l'humidité et transmet les données au backend. La plage de température attendue est de 2 °C à 8 °C.
+Architecture cible
+
+DHT11 → ESP8266 (Wi-Fi) → API Django REST → PostgreSQL → Interface React.js
+
+La communication IoT est prévue initialement en HTTP, puis en MQTT.
+Technologies
+Composant	Technologie
+Capteur	DHT11
+Microcontrôleur	ESP8266
+Backend	Python, Django, Django REST Framework
+Frontend prévu	React.js
+Base de données cible	PostgreSQL
+Base de données utilisée dans le code actuel	SQLite
+Communication initiale	HTTP
+Communication cible	MQTT
+État d'avancement
+Implémenté dans le code actuel
+
+    Projet Django et application DHT.
+    Modèle Dht11 avec temp, hum et dt (horodatage serveur).
+    Endpoint POST pour enregistrer une mesure.
+    Endpoint GET pour consulter les mesures enregistrées.
+    Migration initiale du modèle.
+
+Prévu dans le cahier des charges (non implémenté dans cette version)
+
+    Collecte automatique toutes les 20 minutes (72 mesures par jour).
+    Validation des données, détection des mesures manquantes et dédoublonnage.
+    Tableau de bord React avec température, humidité et historique graphique.
+    Seuils de température configurables et détection des anomalies.
+    Gestion d'un seul incident ouvert, compteur d'occurrences et historique.
+    Escalade des notifications : occurrence 1 → OP1 ; occurrence 4 → OP1 + OP2 ; occurrence 7 → OP1 + OP2 + OP3.
+    Accusés de réception, commentaires et notifications push.
+    Résolution automatique lors du retour à la normale et suivi du délai maximal de 10 heures.
+    Export des mesures au format Excel .xlsx.
+    Migration vers PostgreSQL, MQTT et déploiement distant sécurisé.
+
+Structure actuelle du backend
+.
+├── DHT/
+│   ├── migrations/
+│   ├── api.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── urls.py
+│   └── views.py
+├── projet/
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+├── manage.py
+├── requirements.txt       # à générer avant publication
+├── .gitignore             # à créer avant publication
+└── README.md
+Installation locale du backend
+
+Prérequis : Python et Git.
+git clone https://github.com/UTILISATEUR/NOM_DU_DEPOT.git
+cd NOM_DU_DEPOT
+python -m venv venv
+
+Activer l'environnement virtuel sous Windows (PowerShell) :
+.\venv\Scripts\Activate.ps1
+
+Installer les dépendances :
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+
+Le serveur de développement sera accessible à http://127.0.0.1:8000/.
+API actuelle
+Méthode	Endpoint	Rôle
+GET	/api/get	Consulter les mesures enregistrées
+POST	/api/post	Enregistrer une mesure
+GET	/test/	Endpoint de test
+
+Exemple de corps JSON pour POST /api/post :
+{
+  "temp": 5.2,
+  "hum": 60.0
+}
+
+Les champs temp et hum correspondent au modèle actuel ; dt est renseigné automatiquement par Django.
+Objectif final
+
+Disposer d'une application de surveillance IoT permettant la collecte régulière des mesures, la détection rapide des anomalies, la notification des opérateurs et la traçabilité complète des incidents afin de protéger les réactifs conservés au laboratoire.
+
+    Note : ce dépôt est en cours de développement. Les fonctionnalités de l'architecture cible ne doivent pas être considérées comme déjà livrées.
+
+⋮⋮
+⋮⋮
