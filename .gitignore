@@ -1,0 +1,15 @@
+# Environnement virtuel
+venv/
+.venv/
+
+# Base de données
+db.sqlite3
+*.sqlite3
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+.env.*
