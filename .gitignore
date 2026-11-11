@@ -1,15 +1,21 @@
-# Environnement virtuel
+# Environnement virtuel (chacun crée le sien)
 venv/
 .venv/
+env/
 
-# Base de données
+# Base de données locale (contient tes mesures + le mot de passe admin)
 db.sqlite3
-*.sqlite3
+db_backup.sqlite3
 
-# Cache Python
+# Fichiers Python compilés
 __pycache__/
 *.pyc
 
-# Secrets
+# Secrets (pour l'étape C : mot de passe Gmail, token Telegram)
 .env
-.env.*
+
+# Éditeurs / système
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

@@ -1,27 +1,21 @@
-"""
-URL configuration for projet project.
+from django.urls import path
+from django.views.generic import RedirectView
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-from django.contrib import admin
-from django.contrib.messages import api
-from django.urls import path,include
-from . import views,api
+from . import api, views
 
 urlpatterns = [
-    path('test/', views.test),
+    # API existantes
     path("api/get", api.Dlist, name='json'),
-    path("api/post", api.Dhtviews.as_view(), name='json'),
+    path("api/post", api.Dhtviews.as_view(), name='json_post'),
 
+    # Nouvelles API pour l'affichage
+    path("api/derniere/", api.derniere_mesure, name='api_derniere'),
+    path("api/mesures/", api.mesures, name='api_mesures'),
+
+    # Pages
+    path('', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('graphique/<str:champ>/', views.graphique, name='graphique'),
+    path('test/inserer/', views.inserer_test, name='inserer_test'),
+    path('parametres/seuils/', views.modifier_seuils, name='modifier_seuils'),
 ]

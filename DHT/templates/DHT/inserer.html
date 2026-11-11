@@ -1,0 +1,173 @@
+{% extends 'DHT/base.html' %}
+
+{% block titre %}Insérer une mesure de test{% endblock %}
+
+{% block style %}
+    .grille { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 860px) { .grille { grid-template-columns: 1fr; } }
+
+    .bloc { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 24px; margin-bottom: 20px; }
+    .bloc h2 { margin: 0 0 4px; font-size: 19px; }
+    .bloc .aide { margin: 0 0 18px; color: var(--texte-2); font-size: 15px; }
+
+    /* ---- Message de succès ---- */
+    .message { padding: 14px 18px; border-radius: 14px; margin-bottom: 20px; font-weight: 500; }
+    .message.success { background: #e3f5e3; color: #0a6e0a; }
+    .message.error   { background: #fbe4e4; color: #a32424; }
+
+    /* ---- Scénarios ---- */
+    .scenarios { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .scenario {
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        background: var(--surface);
+        border: 2px solid var(--bordure);
+        border-left-width: 6px;
+        border-radius: 14px;
+        padding: 14px 16px;
+        transition: transform .15s, box-shadow .15s;
+    }
+
+    .scenario:hover { transform: translateY(-2px); box-shadow: var(--ombre); }
+    .scenario.normal    { border-left-color: var(--normal); }
+    .scenario.attention { border-left-color: var(--attention); }
+    .scenario.critique  { border-left-color: var(--critique); }
+
+    .scenario strong { display: block; font-size: 16px; margin-bottom: 4px; }
+    .scenario span { color: var(--texte-2); font-size: 14px; }
+
+    /* ---- Formulaire ---- */
+    .champ { margin-bottom: 16px; }
+    .champ label { display: block; font-weight: 600; margin-bottom: 6px; }
+
+    .champ input {
+        width: 100%;
+        font: inherit;
+        font-size: 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--bordure);
+        border-radius: 10px;
+        background: var(--surface);
+        color: var(--texte);
+    }
+
+    .champ input:focus { outline: 2px solid var(--hum); border-color: transparent; }
+    .champ .helptext, .champ .petit { display: block; color: var(--texte-3); font-size: 13px; margin-top: 4px; }
+    .errorlist { color: var(--critique); margin: 6px 0 0; padding: 0; list-style: none; font-size: 14px; }
+
+    #apercu { margin: -4px 0 16px; min-height: 30px; }
+
+    .bouton {
+        font: inherit;
+        font-weight: 600;
+        font-size: 16px;
+        border: none;
+        border-radius: 12px;
+        padding: 11px 20px;
+        cursor: pointer;
+        background: var(--texte);
+        color: white;
+        width: 100%;
+    }
+
+    /* ---- Tableau ---- */
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--bordure); font-size: 15px; }
+    th { color: var(--texte-2); font-weight: 600; }
+    .lien { color: var(--hum); font-weight: 600; }
+{% endblock %}
+
+{% block contenu %}
+    <h1 class="titre-page">Insérer une mesure de test</h1>
+    <p class="sous-titre">Réservé à l'administrateur : simule des mesures sans utiliser le capteur.</p>
+
+    {% for message in messages %}
+        <div class="message {{ message.tags }}">✓ {{ message }}</div>
+    {% endfor %}
+
+    <div class="grille">
+        <!-- Scénarios rapides -->
+        <div class="bloc">
+            <h2>Scénarios rapides</h2>
+            <p class="aide">Un clic insère la mesure tout de suite, avec l'heure actuelle.</p>
+            <form method="post" class="scenarios">
+                {% csrf_token %}
+                {% for code, s in scenarios.items %}
+                    <button type="submit" name="scenario" value="{{ code }}" class="scenario {{ s.etat }}">
+                        <strong>{{ s.nom }}</strong>
+                        <span>{{ s.temp }} °C · {{ s.hum }} %</span>
+                    </button>
+                {% endfor %}
+            </form>
+        </div>
+
+        <!-- Formulaire manuel -->
+        <div class="bloc">
+            <h2>Mesure personnalisée</h2>
+            <p class="aide">Choisis tes valeurs, et une date passée si besoin.</p>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% for champ in form %}
+                    <div class="champ">
+                        <label for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+                        {{ champ }}
+                        {% if champ.help_text %}<span class="helptext">{{ champ.help_text }}</span>{% endif %}
+                        {{ champ.errors }}
+                    </div>
+                {% endfor %}
+                <div id="apercu"></div>
+                <button type="submit" class="bouton">Insérer la mesure</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dernières mesures -->
+    <div class="bloc">
+        <h2>10 dernières mesures</h2>
+        <p class="aide">
+            Pour supprimer des mesures de test : <a class="lien" href="{% url 'admin:DHT_dht11_changelist' %}">page Admin des mesures</a>.
+        </p>
+        <table>
+            <thead><tr><th>#</th><th>Date</th><th>Température</th><th>Humidité</th></tr></thead>
+            <tbody>
+                {% for m in dernieres %}
+                    <tr>
+                        <td>{{ m.id }}</td>
+                        <td>{{ m.dt|date:"d/m/Y H:i:s" }}</td>
+                        <td data-champ="temp" data-valeur="{{ m.temp|default_if_none:''|stringformat:'s' }}">{{ m.temp|default_if_none:"--" }} °C</td>
+                        <td data-champ="hum" data-valeur="{{ m.hum|default_if_none:''|stringformat:'s' }}">{{ m.hum|default_if_none:"--" }} %</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4">Aucune mesure.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // Ajoute la pastille d'état à côté de chaque valeur du tableau
+    document.querySelectorAll('td[data-champ]').forEach(td => {
+        const v = td.dataset.valeur === '' ? null : parseFloat(td.dataset.valeur);
+        if (v !== null) td.innerHTML += ' &nbsp;' + htmlPastille(etatValeur(td.dataset.champ, v));
+    });
+
+    // Aperçu : montre l'état de la température AVANT d'insérer
+    const champTemp = document.getElementById('id_temp');
+    const champHum = document.getElementById('id_hum');
+    function majApercu() {
+        const t = champTemp.value === '' ? null : parseFloat(champTemp.value);
+        const h = champHum.value === '' ? null : parseFloat(champHum.value);
+        let html = '';
+        if (t !== null) html += 'Température : ' + htmlPastille(etatValeur('temp', t)) + ' &nbsp; ';
+        if (h !== null) html += 'Humidité : ' + htmlPastille(etatValeur('hum', h));
+        document.getElementById('apercu').innerHTML = html;
+    }
+    champTemp.addEventListener('input', majApercu);
+    champHum.addEventListener('input', majApercu);
+    majApercu();
+</script>
+{% endblock %}

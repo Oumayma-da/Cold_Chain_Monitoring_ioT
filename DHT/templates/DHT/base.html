@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titre %}Tableau de bord IoT{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ================= COULEURS & BASE ================= */
+        :root {
+            --fond: #f3f4f7;
+            --surface: #ffffff;
+            --texte: #14161c;
+            --texte-2: #5b5f6b;
+            --texte-3: #8b8f9a;
+            --bordure: #e6e8ee;
+
+            --temp: #eb6834;        /* couleur de la température */
+            --temp-clair: #fdeee7;
+            --hum: #2a78d6;         /* couleur de l'humidité */
+            --hum-clair: #e7f0fb;
+
+            --normal: #0ca30c;
+            --attention: #fab219;
+            --critique: #d03b3b;
+
+            --rayon: 20px;
+            --ombre: 0 1px 2px rgba(20, 22, 28, .04), 0 8px 24px rgba(20, 22, 28, .06);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: var(--fond);
+            color: var(--texte);
+            min-height: 100vh;
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        /* ================= EN-TÊTE ================= */
+        .entete {
+            background: var(--surface);
+            border-bottom: 1px solid var(--bordure);
+        }
+
+        .entete-contenu {
+            max-width: 1100px;
+            margin: auto;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 19px;
+        }
+
+        .logo-icone {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--temp), var(--hum));
+            color: white;
+        }
+
+        .logo small {
+            display: block;
+            font-weight: 400;
+            font-size: 13px;
+            color: var(--texte-3);
+        }
+
+        .menu { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .menu a {
+            padding: 8px 16px;
+            border-radius: 999px;
+            color: var(--texte-2);
+            font-weight: 500;
+            font-size: 15px;
+            transition: background .2s;
+        }
+
+        .menu a:hover { background: var(--fond); }
+
+        .menu a.actif {
+            background: var(--texte);
+            color: white;
+        }
+
+        /* ================= CONTENU ================= */
+        .page {
+            max-width: 1100px;
+            margin: auto;
+            padding: 32px 24px 60px;
+        }
+
+        .titre-page { margin: 0 0 4px; font-size: 30px; font-weight: 700; }
+        .sous-titre { margin: 0 0 28px; color: var(--texte-2); }
+
+        /* Pastille d'état (icône + texte, jamais la couleur seule) */
+        .pastille {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .pastille.normal    { background: #e3f5e3; color: #0a6e0a; }
+        .pastille.attention { background: #fff3d6; color: #8a5a00; }
+        .pastille.critique  { background: #fbe4e4; color: #a32424; }
+        .pastille.inconnu   { background: var(--fond); color: var(--texte-3); }
+
+        .point {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .vide {
+            background: var(--surface);
+            border-radius: var(--rayon);
+            padding: 48px;
+            text-align: center;
+            color: var(--texte-2);
+            box-shadow: var(--ombre);
+        }
+
+        {% block style %}{% endblock %}
+    </style>
+</head>
+
+<body>
+    <header class="entete">
+        <div class="entete-contenu">
+            <a href="{% url 'dashboard' %}" class="logo">
+                <span class="logo-icone">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+                </span>
+                <span>Surveillance IoT<small>Capteur DHT11</small></span>
+            </a>
+            <nav class="menu">
+                <a href="{% url 'dashboard' %}" class="{% if page == 'dashboard' %}actif{% endif %}">Tableau de bord</a>
+                <a href="{% url 'graphique' 'temp' %}" class="{% if page == 'temp' %}actif{% endif %}">Température</a>
+                <a href="{% url 'graphique' 'hum' %}" class="{% if page == 'hum' %}actif{% endif %}">Humidité</a>
+                {% if user.is_staff %}
+                <a href="{% url 'inserer_test' %}" class="{% if page == 'inserer' %}actif{% endif %}">Insérer un test</a>
+                <a href="{% url 'modifier_seuils' %}" class="{% if page == 'seuils' %}actif{% endif %}">Seuils</a>
+                <a href="{% url 'admin:index' %}">Admin</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="page">
+        {% block contenu %}{% endblock %}
+    </main>
+
+    <!-- Configuration envoyée par Django (seuils, délais...) -->
+    {{ config|json_script:"config" }}
+
+    <script>
+        // ================= OUTILS COMMUNS =================
+        const CONFIG = JSON.parse(document.getElementById('config').textContent);
+
+        // Renvoie l'état d'une valeur : normal / attention / critique
+        function etatValeur(champ, valeur) {
+            if (valeur === null || valeur === undefined) return 'inconnu';
+            const s = CONFIG.seuils[champ];
+            if (valeur < s.critique_min || valeur > s.critique_max) return 'critique';
+            if (valeur < s.attention_min || valeur > s.attention_max) return 'attention';
+            return 'normal';
+        }
+
+        const TEXTES_ETAT = {
+            normal:    { icone: '✓', texte: 'Normal' },
+            attention: { icone: '!', texte: 'Attention' },
+            critique:  { icone: '⚠', texte: 'Critique' },
+            inconnu:   { icone: '•', texte: 'Aucune donnée' },
+        };
+
+        function htmlPastille(etat) {
+            const t = TEXTES_ETAT[etat];
+            return `<span class="pastille ${etat}">${t.icone} ${t.texte}</span>`;
+        }
+
+        // 24.456 -> "24,5"
+        function formatNombre(v) {
+            if (v === null || v === undefined) return '--';
+            return Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+        }
+
+        // Date ISO -> "05/11/2026 12:28:23"
+        function formatDate(iso, avecSecondes = true) {
+            if (!iso) return '--';
+            return new Date(iso).toLocaleString('fr-FR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+                second: avecSecondes ? '2-digit' : undefined,
+            });
+        }
+
+        // Nombre de secondes -> "il y a 3 minutes"
+        function tempsEcoule(secondes) {
+            if (secondes < 60) return "il y a moins d'une minute";
+            if (secondes < 3600) { const m = Math.floor(secondes / 60); return `il y a ${m} minute${m > 1 ? 's' : ''}`; }
+            if (secondes < 86400) { const h = Math.floor(secondes / 3600); return `il y a ${h} heure${h > 1 ? 's' : ''}`; }
+            const j = Math.floor(secondes / 86400);
+            return `il y a ${j} jour${j > 1 ? 's' : ''}`;
+        }
+    </script>
+
+    {% block script %}{% endblock %}
+</body>
+</html>

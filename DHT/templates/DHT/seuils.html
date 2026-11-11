@@ -1,0 +1,157 @@
+{% extends 'DHT/base.html' %}
+
+{% block titre %}Seuils{% endblock %}
+
+{% block style %}
+    .grille { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .grille { grid-template-columns: 1fr; } }
+
+    .message { padding: 14px 18px; border-radius: 14px; margin-bottom: 20px; font-weight: 500; background: #e3f5e3; color: #0a6e0a; }
+
+    .carte { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 24px; border-top: 5px solid var(--bordure); }
+    .carte.temp { border-top-color: var(--temp); }
+    .carte.hum  { border-top-color: var(--hum); }
+
+    .carte-nom { display: flex; align-items: center; gap: 12px; font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+    .icone { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; }
+    .carte.temp .icone { background: var(--temp-clair); color: var(--temp); }
+    .carte.hum  .icone { background: var(--hum-clair);  color: var(--hum); }
+    .modifie { color: var(--texte-3); font-size: 13px; margin: 0 0 20px; }
+
+    /* ---- Aperçu de la jauge ---- */
+    .apercu-titre { font-size: 14px; font-weight: 600; color: var(--texte-2); margin-bottom: 8px; }
+    .jauge { display: flex; gap: 2px; height: 14px; margin-bottom: 6px; }
+    .zone { height: 100%; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: rgba(0,0,0,.45); overflow: hidden; }
+    .zone:first-child { border-radius: 999px 0 0 999px; }
+    .zone:last-child  { border-radius: 0 999px 999px 0; }
+    .zone.critique  { background: #f3c4c4; }
+    .zone.attention { background: #fde3a7; }
+    .zone.normal    { background: #bfe6bf; }
+    .resume { font-size: 14px; color: var(--texte-2); margin: 8px 0 22px; line-height: 1.6; }
+
+    /* ---- Champs ---- */
+    .champs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+    .champ label { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+    .pastille-mini { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+    .pastille-mini.critique  { background: var(--critique); }
+    .pastille-mini.attention { background: var(--attention); }
+    .pastille-mini.echelle   { background: var(--texte-3); }
+
+    .champ input {
+        width: 100%; font: inherit; font-size: 16px; padding: 9px 12px;
+        border: 1px solid var(--bordure); border-radius: 10px; background: var(--surface); color: var(--texte);
+    }
+    .champ input:focus { outline: 2px solid var(--hum); border-color: transparent; }
+    .errorlist { color: var(--critique); margin: 4px 0 0; padding: 0; list-style: none; font-size: 13px; }
+    .erreur-generale { background: #fbe4e4; color: #a32424; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 14px; }
+    .erreur-generale .errorlist { color: inherit; }
+
+    .actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+    .bouton { font: inherit; font-weight: 600; font-size: 15px; border: none; border-radius: 12px; padding: 10px 18px; cursor: pointer; background: var(--texte); color: white; }
+    .bouton.secondaire { background: var(--fond); color: var(--texte-2); }
+
+    .info { background: var(--surface); border-radius: 16px; box-shadow: var(--ombre); padding: 16px 20px; margin-bottom: 24px; color: var(--texte-2); font-size: 15px; line-height: 1.6; }
+{% endblock %}
+
+{% block contenu %}
+    <h1 class="titre-page">Seuils</h1>
+    <p class="sous-titre">Réservé à l'administrateur : adapte les limites selon ton cas (frigo de labo, salle serveur, serre…).</p>
+
+    {% for message in messages %}
+        <div class="message">✓ {{ message }}</div>
+    {% endfor %}
+
+    <div class="info">
+        <strong>Comment ça marche :</strong>
+        entre « Attention en dessous » et « Attention au-dessus » → <span class="pastille normal">✓ Normal</span> ;
+        au-delà des seuils critiques → <span class="pastille critique">⚠ Critique</span> ;
+        entre les deux → <span class="pastille attention">! Attention</span>.
+        Les cartes et les graphiques utilisent tout de suite les nouveaux seuils.
+    </div>
+
+    <div class="grille">
+        {% for c in cartes %}
+        <form method="post" class="carte {{ c.mesure.code }}" data-champ="{{ c.mesure.code }}" novalidate>
+            {% csrf_token %}
+            <div class="carte-nom">
+                <span class="icone">
+                    {% if c.mesure.code == 'temp' %}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                    {% else %}
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z"/></svg>
+                    {% endif %}
+                </span>
+                {{ c.mesure.nom }} ({{ c.mesure.unite }})
+            </div>
+            <p class="modifie">Dernière modification : {{ c.seuil.modifie_le|date:"d/m/Y H:i" }}</p>
+
+            <!-- Aperçu en direct -->
+            <div class="apercu-titre">Aperçu</div>
+            <div class="jauge"></div>
+            <div class="resume"></div>
+
+            {% if c.form.non_field_errors %}
+                <div class="erreur-generale">{{ c.form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="champs">
+                {% for champ in c.form %}
+                <div class="champ">
+                    <label for="{{ champ.id_for_label }}">
+                        <span class="pastille-mini {% if 'critique' in champ.name %}critique{% elif 'attention' in champ.name %}attention{% else %}echelle{% endif %}"></span>
+                        {{ champ.label }}
+                    </label>
+                    {{ champ }}
+                    {{ champ.errors }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="actions">
+                <button type="submit" name="action" value="{{ c.mesure.code }}" class="bouton">Enregistrer</button>
+                <button type="submit" name="action" value="defaut_{{ c.mesure.code }}" class="bouton secondaire">Rétablir les valeurs par défaut</button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // Met à jour l'aperçu de la jauge pendant que l'admin tape
+    document.querySelectorAll('form[data-champ]').forEach(form => {
+        const champ = form.dataset.champ;
+        const unite = CONFIG.mesures[champ].unite;
+        const lire = nom => parseFloat(form.querySelector(`[name="${champ}-${nom}"]`).value);
+
+        function majApercu() {
+            const v = {
+                emin: lire('echelle_min'), cmin: lire('critique_min'), amin: lire('attention_min'),
+                amax: lire('attention_max'), cmax: lire('critique_max'), emax: lire('echelle_max'),
+            };
+            const jauge = form.querySelector('.jauge');
+            const resume = form.querySelector('.resume');
+
+            const ordreOk = v.emin <= v.cmin && v.cmin <= v.amin && v.amin < v.amax && v.amax <= v.cmax && v.cmax <= v.emax;
+            if (Object.values(v).some(isNaN) || !ordreOk) {
+                jauge.innerHTML = '';
+                resume.innerHTML = '<span style="color:var(--critique)">⚠ Les valeurs ne sont pas dans le bon ordre.</span>';
+                return;
+            }
+
+            const zones = [
+                ['critique', v.emin, v.cmin], ['attention', v.cmin, v.amin], ['normal', v.amin, v.amax],
+                ['attention', v.amax, v.cmax], ['critique', v.cmax, v.emax],
+            ].filter(([, de, a]) => a > de);
+            jauge.innerHTML = zones.map(([etat, de, a]) => `<div class="zone ${etat}" style="flex:${a - de}"></div>`).join('');
+
+            resume.innerHTML =
+                `✓ Normal de <strong>${v.amin}</strong> à <strong>${v.amax} ${unite}</strong><br>` +
+                `⚠ Critique sous <strong>${v.cmin} ${unite}</strong> ou au-dessus de <strong>${v.cmax} ${unite}</strong>`;
+        }
+
+        form.querySelectorAll('input[type=number]').forEach(i => i.addEventListener('input', majApercu));
+        majApercu();
+    });
+</script>
+{% endblock %}
