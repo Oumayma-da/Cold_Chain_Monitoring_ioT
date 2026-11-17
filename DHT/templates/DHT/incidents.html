@@ -1,0 +1,92 @@
+{% extends 'DHT/base.html' %}
+
+{% block titre %}Incidents{% endblock %}
+
+{% block style %}
+    .filtres { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+    .filtres a {
+        padding: 8px 16px; border-radius: 999px; font-weight: 500; font-size: 15px;
+        background: var(--surface); color: var(--texte-2); box-shadow: var(--ombre);
+    }
+    .filtres a.actif { background: var(--texte); color: white; }
+
+    .bloc { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--bordure); font-size: 15px; }
+    th { color: var(--texte-2); font-weight: 600; font-size: 14px; background: var(--fond); }
+    tbody tr { cursor: pointer; transition: background .15s; }
+    tbody tr:hover { background: #f8f9fb; }
+    tbody tr:last-child td { border-bottom: none; }
+    .numero { font-weight: 700; }
+    .petit { color: var(--texte-3); font-size: 13px; }
+
+    .statut { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .statut.ouvert  { background: #fbe4e4; color: #a32424; }
+    .statut.resolu  { background: #e3f5e3; color: #0a6e0a; }
+    .statut.cloture { background: var(--fond); color: var(--texte-2); }
+
+    .niveaux { display: flex; gap: 3px; }
+    .niveaux span { width: 26px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--fond); color: var(--texte-3); }
+    .niveaux span.oui { background: #fde3c8; color: #9a4a12; }
+
+    .vide { padding: 48px; text-align: center; color: var(--texte-2); }
+    .info { color: var(--texte-2); font-size: 14px; margin-top: 16px; }
+{% endblock %}
+
+{% block contenu %}
+    <h1 class="titre-page">Incidents</h1>
+    <p class="sous-titre">Un incident s'ouvre dès qu'une température sort de la plage autorisée, et se termine quand elle y revient.</p>
+
+    <div class="filtres">
+        {% for code, nom in filtres %}
+            <a href="?filtre={{ code }}" class="{% if code == filtre %}actif{% endif %}">{{ nom }}</a>
+        {% endfor %}
+    </div>
+
+    <div class="bloc">
+        {% if incidents %}
+        <table>
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Début</th>
+                    <th>Fin</th>
+                    <th>Durée</th>
+                    <th>Compteur</th>
+                    <th>T° max / min</th>
+                    <th>Alertés</th>
+                    <th>Accusés</th>
+                    <th>État</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in incidents %}
+                <tr onclick="location.href='{% url 'incident_detail' i.pk %}'">
+                    <td class="numero"><a href="{% url 'incident_detail' i.pk %}">#{{ i.pk }}</a></td>
+                    <td>{{ i.debut|date:"d/m/Y H:i" }}</td>
+                    <td>{% if i.fin %}{{ i.fin|date:"d/m/Y H:i" }}{% else %}<span class="petit">en cours…</span>{% endif %}</td>
+                    <td>{{ i.duree_texte }}</td>
+                    <td>{{ i.compteur }}</td>
+                    <td>{{ i.temp_max }} / {{ i.temp_min }} °C</td>
+                    <td>
+                        <div class="niveaux">
+                            <span class="{% if i.niveau_atteint >= 1 %}oui{% endif %}" title="Opérateur 1">Op1</span>
+                            <span class="{% if i.niveau_atteint >= 2 %}oui{% endif %}" title="Opérateur 2">Op2</span>
+                            <span class="{% if i.niveau_atteint >= 3 %}oui{% endif %}" title="Opérateur 3">Op3</span>
+                        </div>
+                    </td>
+                    <td>{{ i.nb_accuses }} / {{ i.niveau_atteint }}{% if i.nb_commentaires %} <span class="petit">· 💬 {{ i.nb_commentaires }}</span>{% endif %}</td>
+                    <td><span class="statut {{ i.statut }}">{% if i.statut == 'ouvert' %}⚠{% elif i.statut == 'resolu' %}✓{% else %}■{% endif %} {{ i.get_statut_display }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <div class="vide">Aucun incident pour ce filtre. 🎉</div>
+        {% endif %}
+    </div>
+
+    {% if nb_operateurs == 0 %}
+        <p class="info">⚠ Aucun opérateur enregistré : les alertes ne peuvent pas être envoyées. Lance <code>python manage.py creer_operateurs</code>.</p>
+    {% endif %}
+{% endblock %}

@@ -10,10 +10,16 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Charge les secrets du fichier .env (à côté de manage.py)
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -63,6 +69,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'DHT.context_processors.incidents',   # badge "Incidents" dans le menu
             ],
         },
     },
@@ -125,20 +132,68 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # =========================================================
-#  SEUILS PAR DÉFAUT
-#  -> utilisés seulement la 1re fois (ou avec "Rétablir les valeurs par défaut").
-#  Ensuite, l'admin les modifie depuis la page /parametres/seuils/ (stockés en base).
-#  normal    : entre attention_min et attention_max
-#  attention : entre critique_min et attention_min, ou entre attention_max et critique_max
-#  critique  : en dessous de critique_min ou au-dessus de critique_max
+#  SEUILS PAR DÉFAUT (min / max)
+#  -> utilisés la 1re fois et par le bouton "Rétablir les valeurs par défaut".
+#  Ensuite l'admin les change sur la page /parametres/seuils/
 # =========================================================
 SEUILS = {
     "temp": {"min": 2, "max": 8},     # frigo des catalyseurs : 2 à 8 °C
     "hum":  {"min": 30, "max": 70},
 }
 
-# Si aucune mesure depuis ce nombre de secondes -> capteur "hors ligne"
-CAPTEUR_HORS_LIGNE_SECONDES = 120
+# Le capteur envoie une mesure toutes les 20 min.
+# Sans mesure depuis 25 min -> capteur "hors ligne"
+CAPTEUR_HORS_LIGNE_SECONDES = 25 * 60
 
 # Rafraîchissement automatique du tableau de bord (en secondes)
 RAFRAICHISSEMENT_SECONDES = 10
+
+
+# =========================================================
+#  INCIDENTS : ESCALADE
+#  niveau de l'opérateur : à partir de combien de mesures hors limites de suite
+#  (1 mesure = 20 min -> Op2 après ~1 h, Op3 après ~2 h)
+# =========================================================
+ESCALADE = {
+    1: 1,   # Opérateur 1 : dès la 1re mesure hors limites
+    2: 4,   # Opérateur 2 : à partir de la 4e
+    3: 7,   # Opérateur 3 : à partir de la 7e
+}
+
+# Adresse du site (pour le lien envoyé dans les alertes)
+SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000")
+
+
+# =========================================================
+#  CONNEXION DES OPÉRATEURS
+# =========================================================
+LOGIN_URL = 'connexion'
+LOGIN_REDIRECT_URL = 'liste_incidents'
+LOGOUT_REDIRECT_URL = 'dashboard'
+
+
+# =========================================================
+#  NOTIFICATIONS DES OPÉRATEURS : Gmail + Telegram
+#  Les secrets sont dans le fichier .env (jamais sur GitHub).
+#  Contacts de chaque opérateur : Admin > Opérateurs (email + chat ID Telegram).
+#  Plus tard, pour l'application mobile : ajouter "mobile" dans CANAUX_NOTIFICATION.
+# =========================================================
+NOTIFICATIONS_ACTIVES = True
+CANAUX_NOTIFICATION = ["email", "telegram"]
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_TIMEOUT = 10
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    # Gmail pas configuré : les emails s'affichent dans le terminal (pratique pour tester)
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+# Chat utilisé si un opérateur n'a pas encore son propre chat ID
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")

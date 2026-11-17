@@ -42,6 +42,23 @@
     .derniere { color: var(--texte-2); font-size: 15px; }
     .derniere strong { color: var(--texte); font-weight: 600; }
 
+    /* ================= BANDEAU INCIDENT EN COURS ================= */
+    .alerte-incident {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: #fbe4e4;
+        color: #a32424;
+        border: 2px solid #f0b3b3;
+        border-radius: 16px;
+        padding: 14px 20px;
+        margin-bottom: 24px;
+        font-weight: 600;
+    }
+    .alerte-incident a { background: #a32424; color: white; padding: 8px 16px; border-radius: 10px; }
+
     /* ================= CARTES ================= */
     .cartes {
         display: grid;
@@ -165,6 +182,12 @@
 {% block contenu %}
     <h1 class="titre-page">Tableau de bord</h1>
     <p class="sous-titre">Valeurs en temps réel. Clique sur une carte pour voir son graphique.</p>
+
+    <!-- Incident en cours (affiché seulement s'il y en a un) -->
+    <div class="alerte-incident" id="alerte-incident">
+        <span id="texte-incident"></span>
+        <a href="#" id="lien-incident">Voir l'incident →</a>
+    </div>
 
     <!-- État du capteur -->
     <div class="bandeau">
@@ -291,6 +314,17 @@
         etatCapteur.textContent = enLigne ? 'Capteur en ligne' : 'Capteur hors ligne';
     }
 
+    // ---------- Bandeau incident en cours ----------
+    function afficherIncident(incident) {
+        const bandeau = document.getElementById('alerte-incident');
+        if (!incident) { bandeau.style.display = 'none'; return; }
+        document.getElementById('texte-incident').textContent =
+            `⚠ Incident #${incident.id} en cours depuis ${incident.duree} · ` +
+            `${incident.compteur} mesure(s) hors limites · Opérateur ${incident.niveau} alerté`;
+        document.getElementById('lien-incident').href = `/incidents/${incident.id}/`;
+        bandeau.style.display = 'flex';
+    }
+
     // ---------- Récupère la dernière mesure depuis l'API ----------
     async function chargerDerniereMesure() {
         try {
@@ -303,6 +337,9 @@
                 construireJauge('temp');
                 construireJauge('hum');
             }
+
+            // Bandeau "incident en cours"
+            afficherIncident(donnees.incident);
 
             if (!donnees.mesure) {
                 document.getElementById('zone-cartes').innerHTML =

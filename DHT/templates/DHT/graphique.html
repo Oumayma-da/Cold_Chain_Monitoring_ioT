@@ -63,6 +63,7 @@
     }
 
     .bouton.secondaire { background: var(--fond); color: var(--texte-2); }
+    .bouton.export { background: var(--normal); display: inline-block; }
 
     /* ================= STATISTIQUES ================= */
     .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 20px; }
@@ -126,6 +127,7 @@
             au <input type="date" id="fin">
             <button type="submit" class="bouton">Appliquer</button>
             <button type="button" class="bouton secondaire" id="reinitialiser">Réinitialiser</button>
+            <a href="#" class="bouton export" id="exporter">⬇ Exporter CSV</a>
         </form>
     </div>
 
@@ -345,6 +347,10 @@
     // ---------- Charge les données selon le filtre ----------
     async function charger() {
         const params = new URLSearchParams({ champ: CHAMP, ...filtre });
+
+        // Le bouton "Exporter CSV" exporte exactement la période affichée
+        document.getElementById('exporter').href =
+            "{% url 'export_mesures_csv' %}?" + new URLSearchParams(filtre);
         const reponse = await fetch(URL_API + '?' + params);
         const donnees = await reponse.json();
 

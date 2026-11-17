@@ -1,0 +1,50 @@
+{% extends 'DHT/base.html' %}
+
+{% block titre %}Connexion{% endblock %}
+
+{% block style %}
+    .boite {
+        max-width: 420px;
+        margin: 30px auto;
+        background: var(--surface);
+        border-radius: var(--rayon);
+        box-shadow: var(--ombre);
+        padding: 32px;
+    }
+    .boite h1 { margin: 0 0 6px; font-size: 26px; }
+    .boite p { margin: 0 0 24px; color: var(--texte-2); }
+    .champ { margin-bottom: 16px; }
+    .champ label { display: block; font-weight: 600; margin-bottom: 6px; }
+    .champ input {
+        width: 100%; font: inherit; font-size: 16px; padding: 11px 14px;
+        border: 1px solid var(--bordure); border-radius: 12px; background: var(--surface); color: var(--texte);
+    }
+    .champ input:focus { outline: 2px solid var(--hum); border-color: transparent; }
+    .erreur { background: #fbe4e4; color: #a32424; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 15px; }
+    .bouton { width: 100%; font: inherit; font-weight: 600; font-size: 16px; border: none; border-radius: 12px; padding: 12px; cursor: pointer; background: var(--texte); color: white; }
+{% endblock %}
+
+{% block contenu %}
+    <div class="boite">
+        <h1>Connexion</h1>
+        <p>Opérateurs et administrateur : connecte-toi pour voir les incidents.</p>
+
+        {% if form.errors %}
+            <div class="erreur">Nom d'utilisateur ou mot de passe incorrect.</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="champ">
+                <label for="id_username">Nom d'utilisateur</label>
+                <input type="text" name="username" id="id_username" autocomplete="username" autofocus required>
+            </div>
+            <div class="champ">
+                <label for="id_password">Mot de passe</label>
+                <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="bouton">Se connecter</button>
+        </form>
+    </div>
+{% endblock %}
