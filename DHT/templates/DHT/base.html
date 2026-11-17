@@ -85,7 +85,7 @@
             color: var(--texte-3);
         }
 
-        .menu { display: flex; gap: 6px; flex-wrap: wrap; }
+        .menu { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 
         .menu a {
             padding: 8px 16px;
@@ -97,6 +97,33 @@
         }
 
         .menu a:hover { background: var(--fond); }
+
+        /* Badge rouge : nombre d'incidents en cours */
+        .badge {
+            display: inline-block;
+            min-width: 20px;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: var(--critique);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        /* Bouton déconnexion (dans le menu) */
+        .form-deconnexion { display: inline; margin: 0; }
+        .form-deconnexion button {
+            font: inherit;
+            font-size: 14px;
+            color: var(--texte-3);
+            background: none;
+            border: 1px solid var(--bordure);
+            border-radius: 999px;
+            padding: 7px 14px;
+            cursor: pointer;
+        }
+        .form-deconnexion button:hover { color: var(--texte); background: var(--fond); }
 
         .menu a.actif {
             background: var(--texte);
@@ -163,10 +190,25 @@
                 <a href="{% url 'dashboard' %}" class="{% if page == 'dashboard' %}actif{% endif %}">Tableau de bord</a>
                 <a href="{% url 'graphique' 'temp' %}" class="{% if page == 'temp' %}actif{% endif %}">Température</a>
                 <a href="{% url 'graphique' 'hum' %}" class="{% if page == 'hum' %}actif{% endif %}">Humidité</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'liste_incidents' %}" class="{% if page == 'incidents' %}actif{% endif %}">
+                    Incidents{% if nb_incidents_ouverts %} <span class="badge">{{ nb_incidents_ouverts }}</span>{% endif %}
+                </a>
+                {% endif %}
                 {% if user.is_staff %}
                 <a href="{% url 'inserer_test' %}" class="{% if page == 'inserer' %}actif{% endif %}">Insérer un test</a>
                 <a href="{% url 'modifier_seuils' %}" class="{% if page == 'seuils' %}actif{% endif %}">Seuils</a>
                 <a href="{% url 'admin:index' %}">Admin</a>
+                {% endif %}
+                {% if user.is_authenticated %}
+                <form method="post" action="{% url 'deconnexion' %}" class="form-deconnexion">
+                    {% csrf_token %}
+                    <button type="submit" title="Se déconnecter">
+                        {% if mon_operateur %}{{ mon_operateur.get_niveau_display }}{% else %}{{ user.username }}{% endif %} · Déconnexion
+                    </button>
+                </form>
+                {% else %}
+                <a href="{% url 'connexion' %}" class="{% if page == 'connexion' %}actif{% endif %}">Connexion</a>
                 {% endif %}
             </nav>
         </div>
@@ -183,20 +225,18 @@
         // ================= OUTILS COMMUNS =================
         const CONFIG = JSON.parse(document.getElementById('config').textContent);
 
-        // Renvoie l'état d'une valeur : normal / attention / critique
+        // Renvoie l'état d'une valeur : normal (entre min et max) ou critique (en dehors)
         function etatValeur(champ, valeur) {
             if (valeur === null || valeur === undefined) return 'inconnu';
             const s = CONFIG.seuils[champ];
-            if (valeur < s.critique_min || valeur > s.critique_max) return 'critique';
-            if (valeur < s.attention_min || valeur > s.attention_max) return 'attention';
+            if (valeur < s.min || valeur > s.max) return 'critique';
             return 'normal';
         }
 
         const TEXTES_ETAT = {
-            normal:    { icone: '✓', texte: 'Normal' },
-            attention: { icone: '!', texte: 'Attention' },
-            critique:  { icone: '⚠', texte: 'Critique' },
-            inconnu:   { icone: '•', texte: 'Aucune donnée' },
+            normal:   { icone: '✓', texte: 'Normal' },
+            critique: { icone: '⚠', texte: 'Hors limites' },
+            inconnu:  { icone: '•', texte: 'Aucune donnée' },
         };
 
         function htmlPastille(etat) {

@@ -42,6 +42,23 @@
     .derniere { color: var(--texte-2); font-size: 15px; }
     .derniere strong { color: var(--texte); font-weight: 600; }
 
+    /* ================= BANDEAU INCIDENT EN COURS ================= */
+    .alerte-incident {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: #fbe4e4;
+        color: #a32424;
+        border: 2px solid #f0b3b3;
+        border-radius: 16px;
+        padding: 14px 20px;
+        margin-bottom: 24px;
+        font-weight: 600;
+    }
+    .alerte-incident a { background: #a32424; color: white; padding: 8px 16px; border-radius: 10px; }
+
     /* ================= CARTES ================= */
     .cartes {
         display: grid;
@@ -67,7 +84,6 @@
     }
 
     .carte.normal    { border-top-color: var(--normal); }
-    .carte.attention { border-top-color: var(--attention); }
     .carte.critique  { border-top-color: var(--critique); }
 
     .carte-haut {
@@ -116,11 +132,10 @@
         gap: 2px;
     }
 
-    .zone { height: 100%; }
+    .zone { height: 100%; flex: 1; }
     .zone:first-child { border-radius: 999px 0 0 999px; }
-    .zone:last-child  { border-radius: 0 999px 999px 0; }
+    .zone:nth-child(3) { border-radius: 0 999px 999px 0; }
     .zone.critique  { background: #f3c4c4; }
-    .zone.attention { background: #fde3a7; }
     .zone.normal    { background: #bfe6bf; }
 
     .curseur {
@@ -137,12 +152,17 @@
     }
 
     .graduations {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-        color: var(--texte-3);
+        position: relative;
+        height: 18px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--texte-2);
         margin-top: 8px;
     }
+
+    .graduations span { position: absolute; transform: translateX(-50%); }
+    .graduations .bas  { left: 33.33%; }
+    .graduations .haut { left: 66.67%; }
 
     .voir {
         display: flex;
@@ -162,6 +182,12 @@
 {% block contenu %}
     <h1 class="titre-page">Tableau de bord</h1>
     <p class="sous-titre">Valeurs en temps réel. Clique sur une carte pour voir son graphique.</p>
+
+    <!-- Incident en cours (affiché seulement s'il y en a un) -->
+    <div class="alerte-incident" id="alerte-incident">
+        <span id="texte-incident"></span>
+        <a href="#" id="lien-incident">Voir l'incident →</a>
+    </div>
 
     <!-- État du capteur -->
     <div class="bandeau">
@@ -222,37 +248,38 @@
     let decalageHorloge = 0;          // différence entre l'heure du serveur et celle du PC
     const anciennesValeurs = {};
 
-    // ---------- Construit la jauge (zones colorées) une seule fois ----------
+    // ---------- Construit la jauge : [trop bas | normal | trop haut] ----------
     function construireJauge(champ) {
         const s = CONFIG.seuils[champ];
-        const zones = [
-            ['critique',  s.echelle_min,   s.critique_min],
-            ['attention', s.critique_min,  s.attention_min],
-            ['normal',    s.attention_min, s.attention_max],
-            ['attention', s.attention_max, s.critique_max],
-            ['critique',  s.critique_max,  s.echelle_max],
-        ];
-        const jauge = document.getElementById('jauge-' + champ);
-        jauge.innerHTML = zones
-            .filter(([etat, de, a]) => a > de)
-            .map(([etat, de, a]) => `<div class="zone ${etat}" style="flex:${a - de}"></div>`)
-            .join('') + `<div class="curseur" id="curseur-${champ}" style="left:0%; display:none"></div>`;
-
         const unite = CONFIG.mesures[champ].unite;
+
+        document.getElementById('jauge-' + champ).innerHTML =
+            '<div class="zone critique"></div><div class="zone normal"></div><div class="zone critique"></div>' +
+            `<div class="curseur" id="curseur-${champ}" style="left:0%; display:none"></div>`;
+
+        // Les valeurs min et max affichées sous les limites de la zone verte
         document.getElementById('grad-' + champ).innerHTML =
-            `<span>${s.echelle_min}${unite}</span><span>${s.echelle_max}${unite}</span>`;
+            `<span class="bas">${s.min} ${unite}</span><span class="haut">${s.max} ${unite}</span>`;
         document.getElementById('plage-' + champ).textContent =
-            `Plage normale : ${s.attention_min} à ${s.attention_max} ${unite}`;
+            `Plage autorisée : ${s.min} à ${s.max} ${unite}`;
+    }
+
+    // Position du curseur (en %) : chaque zone occupe 1/3 de la jauge
+    function positionCurseur(champ, valeur) {
+        const s = CONFIG.seuils[champ];
+        const largeur = s.max - s.min;
+        if (valeur < s.min) return 33.33 - Math.min(1, (s.min - valeur) / largeur) * 33.33;
+        if (valeur > s.max) return 66.67 + Math.min(1, (valeur - s.max) / largeur) * 33.33;
+        return 33.33 + (valeur - s.min) / largeur * 33.34;
     }
 
     // ---------- Met à jour une carte ----------
     function majCarte(champ, valeur) {
-        const s = CONFIG.seuils[champ];
         const etat = etatValeur(champ, valeur);
         const unite = CONFIG.mesures[champ].unite;
 
         const carte = document.getElementById('carte-' + champ);
-        carte.classList.remove('normal', 'attention', 'critique');
+        carte.classList.remove('normal', 'critique');
         if (etat !== 'inconnu') carte.classList.add(etat);
 
         document.getElementById('etat-' + champ).innerHTML = htmlPastille(etat);
@@ -266,11 +293,10 @@
         }
         anciennesValeurs[champ] = valeur;
 
-        // Position du curseur sur la jauge (bloquée entre 0 et 100 %)
+        // Position du curseur sur la jauge
         const curseur = document.getElementById('curseur-' + champ);
-        const pourcent = (valeur - s.echelle_min) / (s.echelle_max - s.echelle_min) * 100;
         curseur.style.display = 'block';
-        curseur.style.left = Math.min(100, Math.max(0, pourcent)) + '%';
+        curseur.style.left = positionCurseur(champ, valeur) + '%';
     }
 
     // ---------- Voyant "capteur en ligne / hors ligne" + "il y a ..." ----------
@@ -288,6 +314,17 @@
         etatCapteur.textContent = enLigne ? 'Capteur en ligne' : 'Capteur hors ligne';
     }
 
+    // ---------- Bandeau incident en cours ----------
+    function afficherIncident(incident) {
+        const bandeau = document.getElementById('alerte-incident');
+        if (!incident) { bandeau.style.display = 'none'; return; }
+        document.getElementById('texte-incident').textContent =
+            `⚠ Incident #${incident.id} en cours depuis ${incident.duree} · ` +
+            `${incident.compteur} mesure(s) hors limites · Opérateur ${incident.niveau} alerté`;
+        document.getElementById('lien-incident').href = `/incidents/${incident.id}/`;
+        bandeau.style.display = 'flex';
+    }
+
     // ---------- Récupère la dernière mesure depuis l'API ----------
     async function chargerDerniereMesure() {
         try {
@@ -300,6 +337,9 @@
                 construireJauge('temp');
                 construireJauge('hum');
             }
+
+            // Bandeau "incident en cours"
+            afficherIncident(donnees.incident);
 
             if (!donnees.mesure) {
                 document.getElementById('zone-cartes').innerHTML =

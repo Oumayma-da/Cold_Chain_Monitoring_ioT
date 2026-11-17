@@ -1,0 +1,286 @@
+{% extends 'DHT/base.html' %}
+
+{% block titre %}Incident #{{ incident.pk }}{% endblock %}
+
+{% block style %}
+    .retour { display: inline-flex; gap: 6px; color: var(--texte-2); font-weight: 500; margin-bottom: 14px; }
+    .retour:hover { color: var(--texte); }
+
+    .entete-incident { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+    .entete-incident .gauche { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .entete-incident h1 { margin: 0; font-size: 30px; }
+
+    .statut { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; }
+    .statut.ouvert  { background: #fbe4e4; color: #a32424; }
+    .statut.resolu  { background: #e3f5e3; color: #0a6e0a; }
+    .statut.cloture { background: var(--surface); color: var(--texte-2); border: 1px solid var(--bordure); }
+
+    .bouton { display: inline-block; font: inherit; font-weight: 600; font-size: 15px; border: none; border-radius: 12px; padding: 10px 18px; cursor: pointer; background: var(--texte); color: white; }
+    .bouton.secondaire { background: var(--surface); color: var(--texte-2); border: 1px solid var(--bordure); }
+    .bouton.orange { background: #e8590c; }
+
+    .message { padding: 14px 18px; border-radius: 14px; margin-bottom: 20px; font-weight: 500; background: #e3f5e3; color: #0a6e0a; }
+
+    /* ---- Bandeau accusé de réception ---- */
+    .accuse { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+              border-radius: 16px; padding: 18px 22px; margin-bottom: 22px; font-weight: 500; }
+    .accuse.a-faire { background: #fff0e6; color: #8a3a06; border: 2px solid #f7b98a; }
+    .accuse.fait { background: #e3f5e3; color: #0a6e0a; }
+
+    /* ---- Infos ---- */
+    .infos { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .info { background: var(--surface); border-radius: 16px; padding: 16px 18px; box-shadow: var(--ombre); }
+    .info .nom { color: var(--texte-2); font-size: 13px; font-weight: 500; }
+    .info .val { font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .info .val small { font-size: 14px; color: var(--texte-3); font-weight: 500; }
+
+    .bloc { background: var(--surface); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 22px 24px; margin-bottom: 22px; }
+    .bloc h2 { margin: 0 0 14px; font-size: 19px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--bordure); font-size: 15px; vertical-align: top; }
+    th { color: var(--texte-2); font-weight: 600; font-size: 14px; }
+    .oui { color: #0a6e0a; font-weight: 600; }
+    .non { color: var(--texte-3); }
+    .petit { color: var(--texte-3); font-size: 13px; }
+
+    /* ---- Discussion ---- */
+    .commentaire { background: var(--fond); border-radius: 14px; padding: 12px 16px; margin-bottom: 10px; }
+    .commentaire .qui { font-weight: 600; font-size: 14px; }
+    .commentaire .quand { color: var(--texte-3); font-size: 13px; margin-left: 6px; font-weight: 400; }
+    .commentaire .texte { margin-top: 4px; white-space: pre-wrap; }
+    textarea { width: 100%; font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 12px; resize: vertical; margin-bottom: 10px; }
+    .errorlist { color: var(--critique); margin: 0 0 8px; padding: 0; list-style: none; font-size: 14px; }
+
+    /* ---- Journal (tableau chronologique) ---- */
+    .journal-entete { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .journal-entete h2 { margin: 0; }
+    .filtres-journal { display: flex; gap: 4px; background: var(--fond); padding: 4px; border-radius: 12px; }
+    .filtres-journal button { font: inherit; font-size: 14px; font-weight: 500; border: none; background: none; color: var(--texte-2); padding: 6px 12px; border-radius: 9px; cursor: pointer; }
+    .filtres-journal button.actif { background: var(--surface); color: var(--texte); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+    .journal { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .journal th { background: var(--texte); color: white; font-size: 13px; font-weight: 600; padding: 9px 12px; text-align: left; }
+    .journal th:first-child { border-radius: 10px 0 0 0; }
+    .journal th:last-child { border-radius: 0 10px 0 0; }
+    .journal td { padding: 10px 12px; border-bottom: 1px solid var(--bordure); font-size: 14px; vertical-align: top; }
+    .journal .heure { white-space: nowrap; }
+    .journal .heure small { display: block; color: var(--texte-3); font-size: 12px; }
+    .journal .evenement { font-weight: 600; white-space: nowrap; }
+    .journal .par { color: var(--texte-3); font-size: 13px; white-space: nowrap; }
+
+    .journal tr.l-ouverture   td { background: #fdf1f1; }
+    .journal tr.l-escalade    td { background: #fef4ea; }
+    .journal tr.l-operateur   td { background: #f6f3fd; }
+    .journal tr.l-resolution  td { background: #eef9ee; }
+    .journal tr.l-cloture     td { background: #f3f4f7; }
+    .journal tr td:first-child { border-left: 4px solid transparent; }
+    .journal tr.l-ouverture  td:first-child { border-left-color: #d03b3b; }
+    .journal tr.l-escalade   td:first-child { border-left-color: #e8590c; }
+    .journal tr.l-operateur  td:first-child { border-left-color: #7c5cd6; }
+    .journal tr.l-resolution td:first-child { border-left-color: #0ca30c; }
+    .journal tr.l-cloture    td:first-child { border-left-color: #5b5f6b; }
+
+    .etiquette { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; background: #fde3c8; color: #9a4a12; }
+    .op { display: inline-block; padding: 2px 7px; margin: 0 3px 3px 0; border-radius: 6px; font-size: 12px; font-weight: 700; background: #e7f0fb; color: #1d5aa6; }
+    .legende { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--texte-2); }
+    .legende span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    .legende .c-ouverture::before { background: #d03b3b; }
+    .legende .c-escalade::before { background: #e8590c; }
+    .legende .c-operateur::before { background: #7c5cd6; }
+    .legende .c-resolution::before { background: #0ca30c; }
+    .legende .c-cloture::before { background: #5b5f6b; }
+
+    .boutons-export { display: flex; gap: 8px; flex-wrap: wrap; }
+{% endblock %}
+
+{% block contenu %}
+    <a href="{% url 'liste_incidents' %}" class="retour">← Tous les incidents</a>
+
+    <div class="entete-incident">
+        <div class="gauche">
+            <h1>Incident #{{ incident.pk }}</h1>
+            <span class="statut {{ incident.statut }}">
+                {% if incident.statut == 'ouvert' %}⚠{% elif incident.statut == 'resolu' %}✓{% else %}■{% endif %}
+                {{ incident.get_statut_display }}
+            </span>
+        </div>
+        {% if user.is_staff %}
+        <div class="boutons-export">
+            <a class="bouton" href="{% url 'export_fiche_pdf' incident.pk %}" target="_blank">📄 Fiche d'incident (PDF)</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% for message in messages %}
+        <div class="message">✓ {{ message }}</div>
+    {% endfor %}
+
+    <!-- Accusé de réception de l'opérateur connecté -->
+    {% if operateur %}
+        {% if deja_accuse %}
+            <div class="accuse fait">✓ Tu ({{ operateur.get_niveau_display }}) as accusé réception de cet incident.</div>
+        {% else %}
+            <form method="post" class="accuse a-faire">
+                {% csrf_token %}
+                <span>👁 {{ operateur.get_niveau_display }} : confirme que tu as vu cet incident (preuve enregistrée dans le journal).</span>
+                <button type="submit" name="action" value="accuse" class="bouton orange">J'ai vu l'incident</button>
+            </form>
+        {% endif %}
+    {% endif %}
+
+    <!-- Informations principales -->
+    <div class="infos">
+        <div class="info"><div class="nom">Date début</div><div class="val">{{ incident.debut|date:"d/m/Y H:i" }}</div></div>
+        <div class="info"><div class="nom">Date fin</div><div class="val">{% if incident.fin %}{{ incident.fin|date:"d/m/Y H:i" }}{% else %}En cours…{% endif %}</div></div>
+        <div class="info"><div class="nom">Durée</div><div class="val">{{ incident.duree_texte }}</div></div>
+        <div class="info"><div class="nom">Compteur d'alertes</div><div class="val">{{ incident.compteur }}</div></div>
+        <div class="info"><div class="nom">Température max / min</div><div class="val">{{ incident.temp_max }} / {{ incident.temp_min }}<small> °C</small></div></div>
+        <div class="info"><div class="nom">Plage autorisée (à l'ouverture)</div><div class="val">{{ incident.seuil_min }} à {{ incident.seuil_max }}<small> °C</small></div></div>
+        <div class="info"><div class="nom">Niveau d'escalade</div><div class="val">Opérateur {{ incident.niveau_atteint }}</div></div>
+        {% if incident.cloture_le %}
+        <div class="info"><div class="nom">Clôturé le</div><div class="val">{{ incident.cloture_le|date:"d/m/Y H:i" }}</div></div>
+        {% endif %}
+    </div>
+
+    <!-- Opérateurs : alertes et accusés -->
+    <div class="bloc">
+        <h2>Accusés de réception des opérateurs</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Opérateur</th>
+                    <th>Alerté dès</th>
+                    <th>1re alerte reçue</th>
+                    <th>Accusé de réception</th>
+                    <th>Délai de réaction</th>
+                    <th>Dernier commentaire</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in lignes_operateurs %}
+                <tr>
+                    <td><strong>{{ l.operateur.get_niveau_display }}</strong><br><span class="petit">{{ l.operateur.user.username }}</span></td>
+                    <td>{{ l.alerte_a_partir_de }}<sup>e</sup> mesure</td>
+                    <td>{% if l.premiere_alerte %}{{ l.premiere_alerte.date|date:"d/m H:i" }}{% else %}<span class="non">Pas alerté</span>{% endif %}</td>
+                    <td>{% if l.accuse %}<span class="oui">✓ Oui</span> <span class="petit">{{ l.accuse.date|date:"d/m H:i" }}</span>{% else %}<span class="non">Non</span>{% endif %}</td>
+                    <td>{{ l.delai|default:"—" }}</td>
+                    <td>{% if l.dernier_commentaire %}{{ l.dernier_commentaire.message|truncatechars:60 }}{% else %}<span class="non">—</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="non">Aucun opérateur enregistré (python manage.py creer_operateurs).</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Discussion entre opérateurs -->
+    <div class="bloc">
+        <h2>Discussion</h2>
+        {% for c in commentaires %}
+            <div class="commentaire">
+                <div class="qui">
+                    {% if c.operateur %}{{ c.operateur.get_niveau_display }}{% else %}{{ c.auteur.username|default:"?" }} (admin){% endif %}
+                    <span class="quand">{{ c.date|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="texte">{{ c.message }}</div>
+            </div>
+        {% empty %}
+            <p class="non">Aucun commentaire pour le moment.</p>
+        {% endfor %}
+
+        <form method="post" style="margin-top: 14px">
+            {% csrf_token %}
+            {{ form_commentaire.texte.errors }}
+            {{ form_commentaire.texte }}
+            <button type="submit" name="action" value="commenter" class="bouton">Publier</button>
+        </form>
+    </div>
+
+    <!-- Journal : tableau chronologique -->
+    <div class="bloc">
+        <div class="journal-entete">
+            <h2>Chronologie de l'incident</h2>
+            <div class="filtres-journal">
+                <button type="button" data-filtre="tout" class="actif">Tout</button>
+                <button type="button" data-filtre="cle">Étapes clés</button>
+                <button type="button" data-filtre="operateur">Actions des opérateurs</button>
+            </div>
+        </div>
+
+        <table class="journal">
+            <thead>
+                <tr>
+                    <th>Date et heure</th>
+                    <th>Événement</th>
+                    <th>Détail</th>
+                    <th>Alertés / informés</th>
+                    <th>Par</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in chronologie %}
+                <tr class="l-{% if l.categorie == 'escalade' %}escalade{% elif l.categorie == 'operateur' %}operateur{% else %}{{ l.type }}{% endif %}"
+                    data-cle="{% if l.categorie == 'escalade' or l.categorie == 'etape' %}1{% else %}0{% endif %}"
+                    data-operateur="{% if l.categorie == 'operateur' %}1{% else %}0{% endif %}">
+                    <td class="heure">{{ l.date|date:"H:i:s" }}<small>{{ l.date|date:"d/m/Y" }}</small></td>
+                    <td class="evenement">
+                        {{ l.titre }}
+                        {% if l.escalade %}<br><span class="etiquette">⬆ {{ l.escalade }}</span>{% endif %}
+                    </td>
+                    <td>{{ l.detail }}{% if l.note %} <span class="petit">({{ l.note }})</span>{% endif %}</td>
+                    <td>{% for op in l.operateurs %}<span class="op">{{ op }}</span>{% empty %}<span class="non">—</span>{% endfor %}</td>
+                    <td class="par">{{ l.par }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="legende">
+            <span class="c-ouverture">Ouverture</span>
+            <span class="c-escalade">Escalade</span>
+            <span class="c-operateur">Action d'un opérateur</span>
+            <span class="c-resolution">Retour à la normale</span>
+            <span class="c-cloture">Clôture</span>
+        </div>
+    </div>
+
+    <!-- Clôture (admin) -->
+    {% if user.is_staff and incident.statut != 'cloture' %}
+    <div class="bloc">
+        <h2>Clôturer l'incident</h2>
+        <p class="petit" style="margin-top: -6px">
+            {% if incident.statut == 'ouvert' %}
+                ⚠ L'incident est encore en cours : si la température reste hors limites, la prochaine mesure ouvrira un nouvel incident.
+            {% else %}
+                La température est revenue à la normale. Clôture le dossier une fois la cause vérifiée.
+            {% endif %}
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form_cloture.raison.errors }}
+            {{ form_cloture.raison }}
+            <button type="submit" name="action" value="cloturer" class="bouton">Clôturer</button>
+        </form>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+<script>
+    // Filtres du journal : Tout / Étapes clés / Actions des opérateurs
+    document.querySelectorAll('.filtres-journal button').forEach(bouton => {
+        bouton.addEventListener('click', () => {
+            document.querySelectorAll('.filtres-journal button').forEach(b => b.classList.remove('actif'));
+            bouton.classList.add('actif');
+            const filtre = bouton.dataset.filtre;
+            document.querySelectorAll('.journal tbody tr').forEach(ligne => {
+                const visible = filtre === 'tout'
+                    || (filtre === 'cle' && ligne.dataset.cle === '1')
+                    || (filtre === 'operateur' && ligne.dataset.operateur === '1');
+                ligne.style.display = visible ? '' : 'none';
+            });
+        });
+    });
+</script>
+{% endblock %}
